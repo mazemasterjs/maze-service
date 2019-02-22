@@ -1,0 +1,39 @@
+{
+    "name": "maze-service",
+    "version": "1.0.0",
+    "description": "Handles storage, retrieval, and generation of mazes for MazeMasterJS",
+    "main": "bin/service.js",
+    "scripts": {
+        "test": "test",
+        "watch": "nodemon -r dotenv/config bin/service.js -w bin/**/*.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/mazemasterjs/maze-service.git"
+    },
+    "keywords": [
+        "mazemasterjs",
+        "maze",
+        "service"
+    ],
+    "author": "James Dean (kreebog@gmail.com)",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/mazemasterjs/maze-service/issues"
+    },
+    "homepage": "https://github.com/mazemasterjs/maze-service#readme",
+    "dependencies": {
+        "@mazemasterjs/shared-library": "^1.0.17",
+        "compression": "^1.7.3",
+        "express": "^4.16.4",
+        "lokijs": "^1.5.6",
+        "path-exists": "^3.0.0"
+    },
+    "devDependencies": {
+        "@types/compression": "0.0.36",
+        "@types/express": "^4.16.1",
+        "@types/lokijs": "^1.5.2",
+        "@types/path-exists": "^3.0.0",
+        "dotenv": "^6.2.0"
+    }
+}
