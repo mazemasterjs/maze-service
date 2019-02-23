@@ -1,5 +1,5 @@
 import express from 'express';
-import {Logger} from '@mazemasterjs/shared-library/Logger';
+import {Logger} from '@mazemasterjs/logger';
 export const probesRouter = express.Router();
 import Config from '@mazemasterjs/shared-library/Config';
 

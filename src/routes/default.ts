@@ -1,6 +1,6 @@
 import express from 'express';
 import {format as fmt} from 'util';
-import {Logger} from '@mazemasterjs/shared-library/Logger';
+import {Logger} from '@mazemasterjs/logger';
 import path from 'path';
 import Config from '@mazemasterjs/shared-library/Config';
 import Maze from '@mazemasterjs/shared-library/Maze';

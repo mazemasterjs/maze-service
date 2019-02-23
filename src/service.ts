@@ -7,7 +7,7 @@ import compression from 'compression';
 import bodyParser from 'body-parser';
 import {format as fmt} from 'util';
 import {Config} from '@mazemasterjs/shared-library/Config';
-import {Logger} from '@mazemasterjs/shared-library/Logger';
+import {Logger} from '@mazemasterjs/logger';
 import {defaultRouter} from './routes/default';
 import {probesRouter} from './routes/probes';
 
