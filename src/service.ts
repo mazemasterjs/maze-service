@@ -10,6 +10,7 @@ import {Config} from '@mazemasterjs/shared-library/Config';
 import {Logger} from '@mazemasterjs/logger';
 import {defaultRouter} from './routes/default';
 import {probesRouter} from './routes/probes';
+import {genRouter} from './routes/generate';
 
 // load config
 const config = Config.getInstance();
@@ -46,10 +47,13 @@ function startServer() {
     app.use(bodyParser.json());
 
     // set up the probes router (live/ready checks)
-    app.use('/api/maze/gen/probes', probesRouter);
+    app.use('/api/maze/probes', probesRouter);
+
+    // set up the generation route handler
+    app.use('/api/maze/gen', genRouter);
 
     // set up the default route handler
-    app.use('/*', defaultRouter);
+    app.use('/api/maze/*', defaultRouter);
 
     // and start the service
     app.listen(config.HTTP_PORT, () => {
