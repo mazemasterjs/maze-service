@@ -50,7 +50,7 @@ function startServer() {
     app.use('/api/maze/probes', probesRouter);
 
     // set up the generation route handler
-    app.use('/api/maze/gen', genRouter);
+    app.use('/api/maze/generate', genRouter);
 
     // set up the default route handler
     app.use('/api/maze/*', defaultRouter);
