@@ -1,4 +1,5 @@
 import express from 'express';
+import fs from 'fs';
 import {format as fmt} from 'util';
 import {Logger} from '@mazemasterjs/logger';
 import Config from '@mazemasterjs/shared-library/Config';
@@ -8,12 +9,11 @@ export const genRouter = express.Router();
 const log: Logger = Logger.getInstance();
 const config: Config = Config.getInstance();
 const METHOD = 'Route -> [%s]';
-const SAMPLE = '%s://%s/10/10/5/MyMazeSeed';
 
 /**
  * Base maze generation routine, returns a JSON representation of the @mazemasterjs/shared-library/Maze class.
  */
-genRouter.get('/:height/:width/:challenge/:seed', (req, res) => {
+genRouter.get('/:height/:width/:challenge/:name/:seed', (req, res) => {
     let route = '/:height/:width/:challenge/:seed';
     let url = rebuildUrl(req);
 
@@ -24,6 +24,7 @@ genRouter.get('/:height/:width/:challenge/:seed', (req, res) => {
     let width: number = parseInt(req.params.width);
     let challenge: number = parseInt(req.params.challenge);
     let seed: string = req.params.seed;
+    let name: string = req.params.name;
     let errors: Array<string> = new Array<string>();
 
     // validate height
@@ -44,17 +45,14 @@ genRouter.get('/:height/:width/:challenge/:seed', (req, res) => {
         errors.push('Challenge Level must be a numeric value between 0 and 10.');
     }
 
-    // TODO: validate seed?
-
     // check for errors
     if (errors.length > 0) {
         log.trace(__filename, fmt(METHOD, url), 'Input validation errors: ' + errors.join(' :: '));
         res.status(400).json({
             status: '400',
-            message: 'Bad Request - Invalid or empty parameter(s).',
+            message: fmt('Bad Request - Invalid or empty parameter(s). See %s://%s/api/maze/help for documentation.', req.protocol, req.get('host')),
             errors: errors,
-            usage: route,
-            sample: fmt(SAMPLE, req.protocol, req.get('host'))
+            usage: route
         });
     } else {
         // All is well - let's produce a maze!
@@ -77,8 +75,7 @@ genRouter.get('/*', (req, res) => {
 
     res.status(400).json({
         status: '400',
-        message: 'Invalid request.',
-        sample: fmt(SAMPLE, req.protocol, req.get('host'))
+        message: fmt('Invalid request. See %s://%s/api/maze/help for documentation.', req.protocol, req.get('host'))
     });
 });
 

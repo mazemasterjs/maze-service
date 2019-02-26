@@ -11,6 +11,7 @@ import {Logger} from '@mazemasterjs/logger';
 import {defaultRouter} from './routes/default';
 import {probesRouter} from './routes/probes';
 import {genRouter} from './routes/generate';
+import {helpRouter} from './routes/help';
 
 // load config
 const config = Config.getInstance();
@@ -53,7 +54,10 @@ function startServer() {
     app.use('/api/maze/generate', genRouter);
 
     // set up the default route handler
-    app.use('/api/maze/*', defaultRouter);
+    app.use('/api/maze/help', helpRouter);
+
+    // set up the default route handler
+    app.use('/*', defaultRouter);
 
     // and start the service
     app.listen(config.HTTP_PORT, () => {
@@ -75,7 +79,7 @@ function dbInit() {
         log.force(__filename, 'dbInit()', fp + ' not found, creating...');
         fs.mkdirSync(fp);
     } else {
-        log.trace(__filename, 'dbInit()', './maze folder found.');
+        log.trace(__filename, 'dbInit()', './data folder found.');
     }
 
     let mazes = db.getCollection(config.MAZES_COLLECTION_NAME);
