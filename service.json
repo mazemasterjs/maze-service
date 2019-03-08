@@ -1,0 +1,64 @@
+{
+    "serviceName": "maze",
+    "baseUrl": "/api/maze/",
+    "endpoints": [
+        {
+            "name": "help",
+            "description": "Basic, html-based documentation of the API built from this api.json file.",
+            "method": "get",
+            "contentType": "text/html",
+            "url": "help/",
+            "arguments": []
+        },
+        {
+            "name": "generate",
+            "description": "Generates a new Maze from the given height, width, challenge-level, and seed.",
+            "method": "get",
+            "contentType": "application/json",
+            "url": "generate/{height:integer}/{width:integer}/{challenge-level:integer}/{seed:string}",
+            "arguments": [
+                {
+                    "name": "height",
+                    "description": "The height of the maze to generate. This must be a numeric value ranging from MAZE_MIN_HEIGHT to MAZE_MAX_HEIGHT.",
+                    "type": "integer"
+                },
+                {
+                    "name": "width",
+                    "description": "The width of the maze to generate. This must be a numeric value ranging from MAZE_MIN_WIDTH and MAZE_MAX_WIDTH.",
+                    "type": "integer"
+                },
+                {
+                    "name": "challenge-level",
+                    "description": "The challenge-level (difficulty) of the maze to generate. This is must be a numeric value from 0 (easiest) to 10 (most difficult).",
+                    "type": "integer"
+                },
+                {
+                    "name": "seed",
+                    "description": "The seed value to use when generating this maze. This is a string value.",
+                    "type": "String"
+                },
+                {
+                    "name": "name",
+                    "description": "The name of the new maze. This is a string value.",
+                    "type": "String"
+                }
+            ]
+        },
+        {
+            "name": "live",
+            "description": "Liveness probe for K8s monitoring.",
+            "contentType": "application/json",
+            "method": "get",
+            "url": "probes/live/",
+            "arguments": []
+        },
+        {
+            "name": "ready",
+            "description": "Readiness probe for K8s monitoring.",
+            "contentType": "application/json",
+            "method": "get",
+            "url": "probes/ready/",
+            "arguments": []
+        }
+    ]
+}

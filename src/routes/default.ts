@@ -8,7 +8,6 @@ import Maze from '@mazemasterjs/shared-library/Maze';
 export const defaultRouter = express.Router();
 
 const log: Logger = Logger.getInstance();
-const apiDataFile = 'data/api.json';
 const config: Config = Config.getInstance();
 
 /**
@@ -23,28 +22,18 @@ defaultRouter.get('/favicon.ico', (req, res) => {
 /**
  * Handles undefined routes
  */
-defaultRouter.get('/*', (req, res) => {
-    let apiData: any = null;
-    let route = '/*';
+defaultRouter.get('/', (req, res) => {
+    let apiData = config.SERVICE_DOC;
+    let route = '/';
     let url = rebuildUrl(req);
     let helpUrl = '';
 
     log.warn(__filename, route, 'Invalid Route Requested -> ' + url);
 
-    fs.readFile(apiDataFile, 'utf8', function(err, data) {
-        if (err) {
-            res.status(400).json({
-                status: '400',
-                message: fmt('Invalid request. See %s://%s/api/maze/help for documentation.', req.protocol, req.get('host'))
-            });
-            log.error(__filename, fmt('Route -> %s -> Invalid Request.', req.originalUrl), err.message, err);
-        } else {
-            apiData = JSON.parse(data);
-            res.status(400).json({
-                status: '400',
-                message: fmt('Invalid request. See %s://%s/%s for documentation.', req.protocol, req.get('host'), apiData.baseUrl + apiData.endpoints[0].url)
-            });
-        }
+    let host = fmt('%s://%s%s', req.protocol, req.get('host'));
+    res.status(400).json({
+        status: '400',
+        message: fmt('Invalid request. See %s for documentation.', apiData.baseUrl + apiData.endpoints[0].url)
     });
 });
 
