@@ -42,6 +42,8 @@ function startServer() {
     // enable http compression middleware
     app.use(compression());
 
+    app.set('view engine', 'ejs');
+
     // enable bodyParser middleware for json
     // TODO: Remove this if we aren't accepting post/put with JSON data
     app.use(bodyParser.urlencoded({extended: true}));
@@ -54,10 +56,12 @@ function startServer() {
     app.use('/api/maze/generate', genRouter);
 
     // set up the default route handler
-    app.use('/api/maze/help', helpRouter);
+    app.use('/api/maze', helpRouter);
+
+    app.use('/views/css', helpRouter);
 
     // set up the default route handler
-    app.use('/*', defaultRouter);
+    app.use('/', defaultRouter);
 
     // and start the service
     app.listen(config.HTTP_PORT, () => {

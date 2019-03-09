@@ -1,5 +1,5 @@
 {
-    "serviceName": "maze",
+    "name": "maze",
     "baseUrl": "/api/maze/",
     "endpoints": [
         {
@@ -15,7 +15,7 @@
             "description": "Generates a new Maze from the given height, width, challenge-level, and seed.",
             "method": "get",
             "contentType": "application/json",
-            "url": "generate/{height:integer}/{width:integer}/{challenge-level:integer}/{seed:string}",
+            "url": "generate/height/width/challenge-level/seed",
             "arguments": [
                 {
                     "name": "height",

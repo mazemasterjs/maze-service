@@ -5,17 +5,22 @@ import Config from '@mazemasterjs/shared-library/Config';
 
 const log: Logger = Logger.getInstance();
 const config: Config = Config.getInstance();
-const htmlOpen = '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Help</title></head><body>';
-const htmlClose = '</html>';
 
 /**
  * Liveness probe for container/cloud hosted service monitoring
  */
-helpRouter.get('/*', (req, res) => {
-    let htmlOut = htmlOpen + 'This is the help page.' + htmlClose;
-    log.trace(__filename, 'Route -> [' + req.url + ']', 'Handling request.');
-    res.status(200).send(htmlOut);
-    log.trace(__filename, 'Route -> [' + req.url + ']', 'Response complete.');
+helpRouter.get('/help', (req, res) => {
+    log.trace(__filename, `Route -> [${req.url}]`, 'Handling request.');
+    res.render('help.ejs', {svcDoc: config.SERVICE_DOC});
 });
 
+helpRouter.get('/service', (req, res) => {
+    log.trace(__filename, `Route -> [${req.url}]`, 'Handling request.');
+    res.status(200).json(config.SERVICE_DOC);
+});
+
+helpRouter.get('/*', (req, res) => {
+    log.warn(__filename, `Route -> [${req.url}]`, 'Unhandled route, returning 404.');
+    res.sendStatus(404);
+});
 export default helpRouter;
