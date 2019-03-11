@@ -32,6 +32,16 @@ defaultRouter.get('/css/:file', (req, res) => {
     }
 });
 
+defaultRouter.get('/help', (req, res) => {
+    log.trace(__filename, `Route -> [${req.url}]`, 'Handling request.');
+    res.render('help.ejs', {svcDoc: config.SERVICE_DOC});
+});
+
+defaultRouter.get('/service', (req, res) => {
+    log.trace(__filename, `Route -> [${req.url}]`, 'Handling request.');
+    res.status(200).json(config.SERVICE_DOC);
+});
+
 /**
  * Handles undefined routes
  */

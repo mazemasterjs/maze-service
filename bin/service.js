@@ -16,7 +16,6 @@ const logger_1 = require("@mazemasterjs/logger");
 const default_1 = require("./routes/default");
 const probes_1 = require("./routes/probes");
 const generate_1 = require("./routes/generate");
-const help_1 = require("./routes/help");
 // load config
 const config = Config_1.Config.getInstance();
 // set up logger
@@ -45,12 +44,9 @@ function startServer() {
     app.use(body_parser_1.default.urlencoded({ extended: true }));
     app.use(body_parser_1.default.json());
     // set up the probes router (live/ready checks)
-    app.use('/api/maze/probes', probes_1.probesRouter);
+    app.use('/probes', probes_1.probesRouter);
     // set up the generation route handler
-    app.use('/api/maze/generate', generate_1.genRouter);
-    // set up the default route handler
-    app.use('/api/maze', help_1.helpRouter);
-    app.use('/views/css', help_1.helpRouter);
+    app.use('/generate', generate_1.genRouter);
     // set up the default route handler
     app.use('/', default_1.defaultRouter);
     // and start the service
