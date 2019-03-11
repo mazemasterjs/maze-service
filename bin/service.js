@@ -16,6 +16,7 @@ const logger_1 = require("@mazemasterjs/logger");
 const default_1 = require("./routes/default");
 const probes_1 = require("./routes/probes");
 const generate_1 = require("./routes/generate");
+const Maze_1 = __importDefault(require("@mazemasterjs/shared-library/Maze"));
 // load config
 const config = Config_1.Config.getInstance();
 // set up logger
@@ -75,7 +76,8 @@ function dbInit() {
         log.trace(__filename, 'dbInit()', 'Collection [' + config.MAZES_COLLECTION_NAME + '] initialized.');
         mazes = db.addCollection(config.MAZES_COLLECTION_NAME);
     }
-    mazes.insert({ id: '3:5:7:NewMaze', cells: 'cell data here' });
+    let maze = new Maze_1.default().generate(3, 5, 7, 'SampleSeed', 'Sample Maze');
+    mazes.insert(maze);
     db.save(function () {
         log.info(__filename, 'dbInit()', 'Database connection validated, starting server...');
         startServer();

@@ -11,6 +11,7 @@ import {Logger} from '@mazemasterjs/logger';
 import {defaultRouter} from './routes/default';
 import {probesRouter} from './routes/probes';
 import {genRouter} from './routes/generate';
+import Maze from '@mazemasterjs/shared-library/Maze';
 
 // load config
 const config = Config.getInstance();
@@ -86,7 +87,8 @@ function dbInit() {
         mazes = db.addCollection(config.MAZES_COLLECTION_NAME);
     }
 
-    mazes.insert({id: '3:5:7:NewMaze', cells: 'cell data here'});
+    let maze: Maze = new Maze().generate(3, 5, 7, 'SampleSeed', 'Sample Maze');
+    mazes.insert(maze);
 
     db.save(function() {
         log.info(__filename, 'dbInit()', 'Database connection validated, starting server...');
