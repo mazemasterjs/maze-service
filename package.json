@@ -4,7 +4,7 @@
     "description": "Handles storage, retrieval, and generation of mazes for MazeMasterJS",
     "main": "bin/service.js",
     "scripts": {
-        "start": "node ../bin/service.js",
+        "start": "node bin/service.js",
         "test": "test",
         "watch": "nodemon -r dotenv/config bin/service.js -w bin/**/*.js"
     },
