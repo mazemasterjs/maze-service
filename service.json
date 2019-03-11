@@ -33,13 +33,13 @@
                     "type": "integer"
                 },
                 {
-                    "name": "seed",
-                    "description": "The seed value to use when generating this maze. This is a string value.",
+                    "name": "name",
+                    "description": "The name of the new maze. This is a string value.",
                     "type": "String"
                 },
                 {
-                    "name": "name",
-                    "description": "The name of the new maze. This is a string value.",
+                    "name": "seed",
+                    "description": "The seed value to use when generating this maze. This is a string value.",
                     "type": "String"
                 }
             ]

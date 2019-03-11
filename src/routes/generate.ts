@@ -56,11 +56,12 @@ genRouter.get('/:height/:width/:challenge/:name/:seed', (req, res) => {
         });
     } else {
         // All is well - let's produce a maze!
-        log.trace(__filename, route, fmt('Height=%d, Width=%d, Challenge=%d, Seed=%s', height, width, challenge, seed));
-        let maze: Maze = new Maze().generate(height, width, challenge, seed);
+        log.trace(__filename, route, fmt('Height=%d, Width=%d, Challenge=%d, Name=%s, Seed=%s', height, width, challenge, name, seed));
+        let maze: Maze = new Maze().generate(height, width, challenge, name, seed);
 
         // send the json data to the client
-        res.status(200).json(maze);
+        //res.status(200).json(maze);
+        res.status(200).send('<pre>' + maze.TextRender + '</pre>');
     }
 });
 

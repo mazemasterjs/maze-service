@@ -24,7 +24,7 @@
     "homepage": "https://github.com/mazemasterjs/maze-service#readme",
     "dependencies": {
         "@mazemasterjs/logger": "^1.0.2",
-        "@mazemasterjs/shared-library": "^1.2.1",
+        "@mazemasterjs/shared-library": "^1.2.2",
         "compression": "^1.7.3",
         "ejs": "^2.6.1",
         "express": "^4.16.4",
