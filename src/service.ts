@@ -49,13 +49,13 @@ function startServer() {
     app.use(bodyParser.json());
 
     // set up the probes router (live/ready checks)
-    app.use('/probes', probesRouter);
+    app.use('/api/maze/probes', probesRouter);
 
     // set up the generation route handler
-    app.use('/generate', genRouter);
+    app.use('/api/maze/generate', genRouter);
 
     // set up the default route handler
-    app.use('/', defaultRouter);
+    app.use('/api/maze', defaultRouter);
 
     // and start the service
     app.listen(config.HTTP_PORT, () => {
