@@ -44,11 +44,11 @@ function startServer() {
     app.use(body_parser_1.default.urlencoded({ extended: true }));
     app.use(body_parser_1.default.json());
     // set up the probes router (live/ready checks)
-    app.use('/probes', probes_1.probesRouter);
+    app.use('/api/maze/probes', probes_1.probesRouter);
     // set up the generation route handler
-    app.use('/generate', generate_1.genRouter);
+    app.use('/api/maze/generate', generate_1.genRouter);
     // set up the default route handler
-    app.use('/', default_1.defaultRouter);
+    app.use('/api/maze', default_1.defaultRouter);
     // and start the service
     app.listen(config.HTTP_PORT, () => {
         log.force(__dirname, 'startServer()', util_1.format('MazeMasterJS/%s -> Now listening (not ready) on port %d.', config.APP_NAME, config.HTTP_PORT));
