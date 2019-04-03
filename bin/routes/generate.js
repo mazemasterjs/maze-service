@@ -16,7 +16,7 @@ const METHOD = 'Route -> [%s]';
  * Base maze generation routine, returns a JSON representation of the @mazemasterjs/shared-library/Maze class.
  */
 exports.genRouter.get('/:height/:width/:challenge/:name/:seed', (req, res) => {
-    let route = '/:height/:width/:challenge/:seed';
+    let route = '/:height/:width/:challenge/:name/:seed';
     let url = rebuildUrl(req);
     log.trace(__filename, route, 'Handling GET -> ' + url);
     // get the parameters

@@ -45,6 +45,20 @@
             ]
         },
         {
+            "name": "get",
+            "description": "Get a specific maze from the Mazes collection.",
+            "method": "get",
+            "contentType": "application/json",
+            "url": "get/mazeId",
+            "arguments": [
+                {
+                    "name": "mazeId",
+                    "description": "mazeId is a string concatenation the height, width, challenge-level, name, and seed fields. For example: '3:5:10:TestMaze:SampleSeed'",
+                    "type": "string"
+                }
+            ]
+        },
+        {
             "name": "live",
             "description": "Liveness probe for K8s monitoring.",
             "contentType": "application/json",

@@ -1,7 +1,3 @@
-import Loki from 'lokijs';
-import fs from 'fs';
-import path from 'path';
-import pathExists from 'path-exists';
 import express from 'express';
 import compression from 'compression';
 import bodyParser from 'body-parser';
@@ -11,6 +7,8 @@ import {Logger} from '@mazemasterjs/logger';
 import {defaultRouter} from './routes/default';
 import {probesRouter} from './routes/probes';
 import {genRouter} from './routes/generate';
+import {MazeDao} from './MazeDao';
+import {Server} from 'http';
 import Maze from '@mazemasterjs/shared-library/Maze';
 
 // load config
@@ -22,16 +20,10 @@ const log = Logger.getInstance();
 // set up express
 const app = express();
 
-// set mazes collection reference
-//let mazes: Loki.Collection;
+// prep reference for express server
+let httpServer: Server;
 
-// intialize the embedded database
-let db = new Loki(fmt(config.MAZES_DB_FILE), {
-    autoload: true,
-    autoloadCallback: dbInit,
-    autosave: true,
-    autosaveInterval: 2500
-});
+startServer();
 
 /**
  * Starts up the express server
@@ -59,41 +51,14 @@ function startServer() {
     app.use('/api/maze', defaultRouter);
 
     // and start the service
-    app.listen(config.HTTP_PORT, () => {
+    let httpServer = app.listen(config.HTTP_PORT, () => {
         log.force(__dirname, 'startServer()', fmt('MazeMasterJS/%s -> Now listening (not ready) on port %d.', config.APP_NAME, config.HTTP_PORT));
         openServer();
     });
 
     // log maze count
-    let mazes = db.getCollection(config.MAZES_COLLECTION_NAME);
-    log.force(__filename, 'startServer()', fmt('%d mazes found in %s -> %s', mazes.count(), config.MAZES_DB_FILE, config.MAZES_COLLECTION_NAME));
-}
-
-/**
- * Initialize / load the embedded lokijs database
- */
-function dbInit() {
-    let fp = path.resolve('./data');
-    if (!pathExists.sync(fp)) {
-        log.force(__filename, 'dbInit()', fp + ' not found, creating...');
-        fs.mkdirSync(fp);
-    } else {
-        log.trace(__filename, 'dbInit()', './data folder found.');
-    }
-
-    let mazes = db.getCollection(config.MAZES_COLLECTION_NAME);
-    if (mazes == null) {
-        log.trace(__filename, 'dbInit()', 'Collection [' + config.MAZES_COLLECTION_NAME + '] initialized.');
-        mazes = db.addCollection(config.MAZES_COLLECTION_NAME);
-    }
-
-    let maze: Maze = new Maze().generate(3, 5, 7, 'SampleSeed', 'Sample Maze');
-    mazes.insert(maze);
-
-    db.save(function() {
-        log.info(__filename, 'dbInit()', 'Database connection validated, starting server...');
-        startServer();
-    });
+    // let mazes = db.getCollection(config.MAZES_COLLECTION_NAME);
+    // log.force(__filename, 'startServer()', fmt('%d mazes found in %s -> %s', mazes.count(), config.MAZES_DB_FILE, config.MAZES_COLLECTION_NAME));
 }
 
 /**
@@ -130,6 +95,12 @@ process.on('SIGTERM', function onSigTerm() {
  * Gracefully shut down the service
  */
 function doShutdown() {
-    log.force(__filename, 'doShutDown()', 'Closing HTTP Server connections...');
+    log.force(__filename, 'doShutDown()', 'Closing DB connections...');
+    MazeDao.getInstance().disconnect();
+
+    log.force(__filename, 'doShutDown()', 'Closing HTTP connections...');
+    httpServer.close();
+
+    log.force(__filename, 'doShutDown()', 'Exiting process...');
     process.exit(0);
 }
