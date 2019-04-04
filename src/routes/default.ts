@@ -1,17 +1,52 @@
-import express, {response} from 'express';
-import fs, {readlink} from 'fs';
+import express from 'express';
 import {format as fmt, isUndefined, isNull} from 'util';
 import {Logger} from '@mazemasterjs/logger';
+import fs from 'fs';
 import path from 'path';
 import Config from '@mazemasterjs/shared-library/Config';
 import Service from '@mazemasterjs/shared-library/Service';
 import MazeDao from '../MazeDao';
+import {Cursor} from 'mongodb';
 import Maze from '@mazemasterjs/shared-library/Maze';
+import MongoClient from 'mongodb';
+import {maxHeaderSize} from 'http';
 export const defaultRouter = express.Router();
 
 const log: Logger = Logger.getInstance();
 const config: Config = Config.getInstance();
 const mazeDao: MazeDao = MazeDao.getInstance();
+
+let getDocCount = async (req: express.Request, res: express.Response) => {
+    log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    let count = await mazeDao.countDocuments(config.MONGO_COL_MAZES);
+    log.debug(__filename, 'getDocCount()', 'Document Count=' + count);
+    res.status(200).json({collection: config.MONGO_COL_MAZES, 'document-count': count});
+};
+
+let getMazes = async (req: express.Request, res: express.Response) => {
+    log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    let curMazes: Cursor<any> = await mazeDao.getAllDocuments(config.MONGO_COL_MAZES);
+    res.status(200).json(await curMazes.toArray());
+};
+
+let insertMaze = async (req: express.Request, res: express.Response) => {
+    log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    let maze: Maze = new Maze().generate(3, 3, 2, 'AnotherTest', 'AnotherSeed');
+    let ret = await mazeDao.insertDocument(config.MONGO_COL_MAZES, maze);
+
+    res.status(200).json({result: ret});
+};
+
+let deleteMaze = async (req: express.Request, res: express.Response) => {
+    log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    let ret = await mazeDao.deleteDocument(config.MONGO_COL_MAZES, req.params.id);
+    res.status(200).json({result: ret});
+};
+
+defaultRouter.get('/get/count', getDocCount);
+defaultRouter.get('/get/all', getMazes);
+defaultRouter.get('/get/test', insertMaze);
+defaultRouter.get('/get/delete/:id', deleteMaze);
 
 /**
  * Handle favicon requests
@@ -42,23 +77,6 @@ defaultRouter.get('/help', (req, res) => {
 defaultRouter.get('/service', (req, res) => {
     log.trace(__filename, `Route -> [${req.url}]`, 'Handling request.');
     res.status(200).json(config.SERVICE_DOC);
-});
-
-/**
- * Returns the maze with the given id
- */
-defaultRouter.get('/get/count', (req, res) => {
-    log.debug(__filename, `Route -> [${req.url}]`, 'Handling request.');
-    (async function() {
-        if (mazeDao.coll) {
-            log.debug(__filename, `Route -> [${req.url}]`, 'Counting...');
-            var mazeCount = await mazeDao.coll.countDocuments();
-            log.debug(__filename, `Route -> [${req.url}]`, `Returning ${mazeCount}`);
-            res.status(200).json({mazeCount: mazeCount});
-        } else {
-            res.status(500).json({message: 'Unable to connect to Maze Collection.'});
-        }
-    });
 });
 
 /**

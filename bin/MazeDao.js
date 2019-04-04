@@ -24,20 +24,52 @@ class MazeDao {
             if (err) {
                 logger_1.Logger.getInstance().error(__filename, 'constructor()', `Error connecting to ${MazeDao.getInstance().config.MONGO_CONNSTR}`, err);
             }
-            MazeDao.instance.mongoDBClient = client;
-            MazeDao.instance.db = MazeDao.instance.mongoDBClient.db(config.MONGO_DB);
-            MazeDao.instance.coll = MazeDao.instance.db.collection(config.MONGO_COL_MAZES);
+            else {
+                MazeDao.instance.mongoDBClient = client;
+                MazeDao.instance.db = MazeDao.instance.mongoDBClient.db(config.MONGO_DB);
+            }
         });
     }
-    getMazes() {
-        if (this.coll) {
-            let mazes = this.coll.find();
-            this.log.debug(__filename, 'getMazes()', `Returning  ${mazes.count}`);
-            return mazes.toArray();
+    countDocuments(collectionName) {
+        this.log.debug(__filename, `countDocuments(${collectionName})`, 'Attempting to get document count.');
+        if (this.db) {
+            return this.db.collection(collectionName).countDocuments();
         }
         else {
-            this.log.warn(__filename, 'getMazeCount()', 'Maze Collection is undefined.');
-            return null;
+            throw this.dataAccessFailure(`countDocuments(${collectionName})`);
+        }
+    }
+    getAllDocuments(collectionName) {
+        this.log.debug(__filename, `getAllDocuments(${collectionName})`, 'Attempting to get all documents in collection.');
+        if (this.db) {
+            return this.db.collection(collectionName).find();
+        }
+        else {
+            throw this.dataAccessFailure(`getAllDocuments(${collectionName})`);
+        }
+    }
+    insertDocument(collectionName, doc) {
+        this.log.debug(__filename, `insertDocument(${doc})`, 'Attempting to insert document.');
+        if (this.db) {
+            return this.db.collection(collectionName).insertOne(doc);
+        }
+        else {
+            throw this.dataAccessFailure(`getAllDocuments(${collectionName})`);
+        }
+    }
+    deleteDocument(collectionName, id) {
+        this.log.debug(__filename, `deleteDocument(${id})`, 'Attempting to delete document.');
+        if (this.db) {
+            return this.db
+                .collection(collectionName)
+                .deleteOne({ id: id })
+                .catch((err) => {
+                this.log.error(__filename, 'deleteDocument()', 'Error while deleting document', err);
+                return err;
+            });
+        }
+        else {
+            throw this.dataAccessFailure(`getAllDocuments(${collectionName})`);
         }
     }
     /**
@@ -47,6 +79,12 @@ class MazeDao {
         if (this.mongoDBClient) {
             this.mongoDBClient.close();
         }
+    }
+    dataAccessFailure(method) {
+        let msg = 'MongoClient.Db is undefined.  Connection failure?';
+        let err = new Error(msg);
+        this.log.error(__filename, method, msg, err);
+        return err;
     }
 }
 exports.MazeDao = MazeDao;

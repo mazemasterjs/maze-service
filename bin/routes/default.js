@@ -12,16 +12,43 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const fs_1 = __importDefault(require("fs"));
 const util_1 = require("util");
 const logger_1 = require("@mazemasterjs/logger");
+const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const Config_1 = __importDefault(require("@mazemasterjs/shared-library/Config"));
 const MazeDao_1 = __importDefault(require("../MazeDao"));
+const Maze_1 = __importDefault(require("@mazemasterjs/shared-library/Maze"));
 exports.defaultRouter = express_1.default.Router();
 const log = logger_1.Logger.getInstance();
 const config = Config_1.default.getInstance();
 const mazeDao = MazeDao_1.default.getInstance();
+let getDocCount = (req, res) => __awaiter(this, void 0, void 0, function* () {
+    log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    let count = yield mazeDao.countDocuments(config.MONGO_COL_MAZES);
+    log.debug(__filename, 'getDocCount()', 'Document Count=' + count);
+    res.status(200).json({ collection: config.MONGO_COL_MAZES, 'document-count': count });
+});
+let getMazes = (req, res) => __awaiter(this, void 0, void 0, function* () {
+    log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    let curMazes = yield mazeDao.getAllDocuments(config.MONGO_COL_MAZES);
+    res.status(200).json(yield curMazes.toArray());
+});
+let insertMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
+    log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    let maze = new Maze_1.default().generate(3, 3, 2, 'AnotherTest', 'AnotherSeed');
+    let ret = yield mazeDao.insertDocument(config.MONGO_COL_MAZES, maze);
+    res.status(200).json({ result: ret });
+});
+let deleteMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
+    log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    let ret = yield mazeDao.deleteDocument(config.MONGO_COL_MAZES, req.params.id);
+    res.status(200).json({ result: ret });
+});
+exports.defaultRouter.get('/get/count', getDocCount);
+exports.defaultRouter.get('/get/all', getMazes);
+exports.defaultRouter.get('/get/test', insertMaze);
+exports.defaultRouter.get('/get/delete/:id', deleteMaze);
 /**
  * Handle favicon requests
  */
@@ -49,25 +76,6 @@ exports.defaultRouter.get('/help', (req, res) => {
 exports.defaultRouter.get('/service', (req, res) => {
     log.trace(__filename, `Route -> [${req.url}]`, 'Handling request.');
     res.status(200).json(config.SERVICE_DOC);
-});
-/**
- * Returns the maze with the given id
- */
-exports.defaultRouter.get('/get/count', (req, res) => {
-    log.debug(__filename, `Route -> [${req.url}]`, 'Handling request.');
-    (function () {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (mazeDao.coll) {
-                log.debug(__filename, `Route -> [${req.url}]`, 'Counting...');
-                var mazeCount = yield mazeDao.coll.countDocuments();
-                log.debug(__filename, `Route -> [${req.url}]`, `Returning ${mazeCount}`);
-                res.status(200).json({ mazeCount: mazeCount });
-            }
-            else {
-                res.status(500).json({ message: 'Unable to connect to Maze Collection.' });
-            }
-        });
-    });
 });
 /**
  * Handles undefined routes
