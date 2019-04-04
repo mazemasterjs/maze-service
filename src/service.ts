@@ -23,6 +23,9 @@ const app = express();
 // prep reference for express server
 let httpServer: Server;
 
+// used to initialize the database connection
+let mazeDao: MazeDao;
+
 startServer();
 
 /**
@@ -51,14 +54,38 @@ function startServer() {
     app.use('/api/maze', defaultRouter);
 
     // and start the service
-    let httpServer = app.listen(config.HTTP_PORT, () => {
-        log.force(__dirname, 'startServer()', fmt('MazeMasterJS/%s -> Now listening (not ready) on port %d.', config.APP_NAME, config.HTTP_PORT));
-        openServer();
-    });
+    httpServer = app.listen(config.HTTP_PORT, () => {
+        log.force(__filename, 'startServer()', fmt('MazeMasterJS/%s -> Now listening (not ready) on port %d.', config.APP_NAME, config.HTTP_PORT));
 
-    // log maze count
-    // let mazes = db.getCollection(config.MAZES_COLLECTION_NAME);
-    // log.force(__filename, 'startServer()', fmt('%d mazes found in %s -> %s', mazes.count(), config.MAZES_DB_FILE, config.MAZES_COLLECTION_NAME));
+        mazeDao = MazeDao.getInstance();
+
+        // need to give mazeDao a chance to connect so we'll poll it
+        // for a few seconds before giving up and shutting down.
+        let timeoutCount = 10; // we'll check 10 times for a DB connection before failing
+        let dbConnCheckTimer = setInterval(function() {
+            log.debug(__filename, 'startServer().dbConnCheckTimer()', 'Awaiting database connection -> ' + timeoutCount);
+
+            // clear the timer if connected or out of attempts
+            if (mazeDao.isConnected() || timeoutCount == 0) {
+                clearInterval(dbConnCheckTimer);
+            }
+
+            // clear the timer and open server if connected
+            if (mazeDao.isConnected()) {
+                log.debug(__filename, 'startServer().dbConnCheckTimer()', 'Database connection established.');
+                openServer();
+            } else {
+                // shut down the app if our countdown reaches zero
+                if (timeoutCount <= 0) {
+                    log.warn(__filename, 'startServer().dbConnCheckTimer()', 'Database connection timed out, shutting down.');
+                    doShutdown();
+                }
+            }
+
+            // decrement countdown with every interval
+            timeoutCount--;
+        }, 250);
+    });
 }
 
 /**
@@ -70,7 +97,7 @@ function openServer() {
     config.READY_TO_ROCK = true;
 
     // announce service available
-    log.force(__dirname, 'startServer()', fmt('MazeMasterJS/%s -> Now live and ready on http://%s:%d', config.APP_NAME, config.HOST_NAME, config.HTTP_PORT));
+    log.force(__filename, 'openServer()', fmt('MazeMasterJS/%s -> Now live and ready on http://%s:%d', config.APP_NAME, config.HOST_NAME, config.HTTP_PORT));
 }
 
 /**
@@ -98,7 +125,7 @@ function doShutdown() {
     log.force(__filename, 'doShutDown()', 'Closing DB connections...');
     MazeDao.getInstance().disconnect();
 
-    log.force(__filename, 'doShutDown()', 'Closing HTTP connections...');
+    log.force(__filename, 'doShutDown()', 'Shutting down HTTPServer...');
     httpServer.close();
 
     log.force(__filename, 'doShutDown()', 'Exiting process...');

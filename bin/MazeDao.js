@@ -19,12 +19,15 @@ class MazeDao {
         return this.instance;
     }
     initConnection() {
+        this.log.debug(__filename, 'initConnection()', 'Initializing MongoDB Client connection');
         mongodb_1.MongoClient.connect(Config_1.Config.getInstance().MONGO_CONNSTR, { useNewUrlParser: true }, function (err, client) {
             let config = Config_1.Config.getInstance();
+            let log = logger_1.Logger.getInstance();
             if (err) {
-                logger_1.Logger.getInstance().error(__filename, 'constructor()', `Error connecting to ${MazeDao.getInstance().config.MONGO_CONNSTR}`, err);
+                log.error(__filename, 'initConnection()', `Error connecting to ${config.MONGO_CONNSTR} ->`, err);
             }
             else {
+                log.debug(__filename, 'initConnection()', `MongoDB Client connection established to ${config.MONGO_CONNSTR}`);
                 MazeDao.instance.mongoDBClient = client;
                 MazeDao.instance.db = MazeDao.instance.mongoDBClient.db(config.MONGO_DB);
             }
@@ -72,6 +75,15 @@ class MazeDao {
             throw this.dataAccessFailure(`getAllDocuments(${collectionName})`);
         }
     }
+    isConnected() {
+        return this.db != undefined;
+    }
+    dataAccessFailure(method) {
+        let msg = 'MongoClient.Db is undefined.  Connection failure?';
+        let err = new Error(msg);
+        this.log.error(__filename, method, msg, err);
+        return err;
+    }
     /**
      * Close the database connection.
      */
@@ -79,12 +91,6 @@ class MazeDao {
         if (this.mongoDBClient) {
             this.mongoDBClient.close();
         }
-    }
-    dataAccessFailure(method) {
-        let msg = 'MongoClient.Db is undefined.  Connection failure?';
-        let err = new Error(msg);
-        this.log.error(__filename, method, msg, err);
-        return err;
     }
 }
 exports.MazeDao = MazeDao;

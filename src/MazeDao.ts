@@ -1,4 +1,4 @@
-import {MongoClient, Db, Collection, Cursor, ObjectID, ObjectId, DeleteWriteOpResultObject, InsertOneWriteOpResult} from 'mongodb';
+import {MongoClient, Db, Cursor, DeleteWriteOpResultObject, InsertOneWriteOpResult} from 'mongodb';
 import {Config} from '@mazemasterjs/shared-library/Config';
 import {Logger} from '@mazemasterjs/logger';
 
@@ -26,11 +26,14 @@ export class MazeDao {
     }
 
     private initConnection() {
+        this.log.debug(__filename, 'initConnection()', 'Initializing MongoDB Client connection');
         MongoClient.connect(Config.getInstance().MONGO_CONNSTR, {useNewUrlParser: true}, function(err, client) {
             let config: Config = Config.getInstance();
+            let log: Logger = Logger.getInstance();
             if (err) {
-                Logger.getInstance().error(__filename, 'constructor()', `Error connecting to ${MazeDao.getInstance().config.MONGO_CONNSTR}`, err);
+                log.error(__filename, 'initConnection()', `Error connecting to ${config.MONGO_CONNSTR} ->`, err);
             } else {
+                log.debug(__filename, 'initConnection()', `MongoDB Client connection established to ${config.MONGO_CONNSTR}`);
                 MazeDao.instance.mongoDBClient = client;
                 MazeDao.instance.db = MazeDao.instance.mongoDBClient.db(config.MONGO_DB);
             }
@@ -82,13 +85,8 @@ export class MazeDao {
         }
     }
 
-    /**
-     * Close the database connection.
-     */
-    public disconnect() {
-        if (this.mongoDBClient) {
-            this.mongoDBClient.close();
-        }
+    public isConnected(): boolean {
+        return this.db != undefined;
     }
 
     private dataAccessFailure(method: string): Error {
@@ -96,6 +94,15 @@ export class MazeDao {
         let err: Error = new Error(msg);
         this.log.error(__filename, method, msg, err);
         return err;
+    }
+
+    /**
+     * Close the database connection.
+     */
+    public disconnect() {
+        if (this.mongoDBClient) {
+            this.mongoDBClient.close();
+        }
     }
 }
 
