@@ -65,18 +65,62 @@ class MazeDao {
         }
     }
     /**
+     * Return all documents in the given collection (danger - not paged!)
+     *
+     * @param collectionName string
+     */
+    getDocument(collectionName, docId) {
+        this.log.debug(__filename, `getDocument(${collectionName}, ${docId})`, 'Searching for document.');
+        if (this.db) {
+            return this.db.collection(collectionName).findOne({ id: docId });
+        }
+        else {
+            throw this.dataAccessFailure(`getDocument(${collectionName},  ${docId})`);
+        }
+    }
+    /**
+     * Update the document with the given docId with the given document data
+     *
+     * @param collectionName string
+     * @param docId string
+     * @param doc <any>
+     */
+    updateDocument(collectionName, docId, doc) {
+        let method = `updateDocument(${collectionName}, ${docId}, ${doc})`;
+        this.log.debug(__filename, method, 'Attempting to update document.');
+        if (this.db) {
+            return this.db
+                .collection(collectionName)
+                .updateOne({ id: docId }, doc, { upsert: false })
+                .catch((err) => {
+                this.log.error(__filename, method, 'Error while updating document -> ', err);
+                return err;
+            });
+        }
+        else {
+            throw this.dataAccessFailure(method);
+        }
+    }
+    /**
      * Insert the given document into the specified collection
      *
      * @param collectionName string
      * @param doc any
      */
     insertDocument(collectionName, doc) {
-        this.log.debug(__filename, `insertDocument(${doc})`, 'Attempting to insert document.');
+        let method = `insertDocument(${collectionName}, ${doc})`;
+        this.log.debug(__filename, method, 'Attempting to insert document.');
         if (this.db) {
-            return this.db.collection(collectionName).insertOne(doc);
+            return this.db
+                .collection(collectionName)
+                .insertOne(doc)
+                .catch((err) => {
+                this.log.error(__filename, method, 'Error while inserting document -> ', err);
+                return err;
+            });
         }
         else {
-            throw this.dataAccessFailure(`getAllDocuments(${collectionName})`);
+            throw this.dataAccessFailure(method);
         }
     }
     /**

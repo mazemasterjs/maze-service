@@ -1,6 +1,7 @@
-import {MongoClient, Db, Cursor, DeleteWriteOpResultObject, InsertOneWriteOpResult} from 'mongodb';
+import {MongoClient, Db, Cursor, DeleteWriteOpResultObject, InsertOneWriteOpResult, UpdateWriteOpResult} from 'mongodb';
 import {Config} from '@mazemasterjs/shared-library/Config';
 import {Logger} from '@mazemasterjs/logger';
+import {rejects} from 'assert';
 
 export class MazeDao {
     // get/declare static variables
@@ -73,18 +74,63 @@ export class MazeDao {
     }
 
     /**
+     * Return all documents in the given collection (danger - not paged!)
+     *
+     * @param collectionName string
+     */
+    public getDocument(collectionName: string, docId: string): Promise<any> {
+        this.log.debug(__filename, `getDocument(${collectionName}, ${docId})`, 'Searching for document.');
+        if (this.db) {
+            return this.db.collection(collectionName).findOne({id: docId});
+        } else {
+            throw this.dataAccessFailure(`getDocument(${collectionName},  ${docId})`);
+        }
+    }
+
+    /**
+     * Update the document with the given docId with the given document data
+     *
+     * @param collectionName string
+     * @param docId string
+     * @param doc <any>
+     */
+    public updateDocument(collectionName: string, docId: string, doc: any): Promise<UpdateWriteOpResult> {
+        let method = `updateDocument(${collectionName}, ${docId}, ${doc})`;
+        this.log.debug(__filename, method, 'Attempting to update document.');
+
+        if (this.db) {
+            return this.db
+                .collection(collectionName)
+                .updateOne({id: docId}, doc, {upsert: false})
+                .catch((err) => {
+                    this.log.error(__filename, method, 'Error while updating document -> ', err);
+                    return err;
+                });
+        } else {
+            throw this.dataAccessFailure(method);
+        }
+    }
+
+    /**
      * Insert the given document into the specified collection
      *
      * @param collectionName string
      * @param doc any
      */
     public insertDocument(collectionName: string, doc: any): Promise<InsertOneWriteOpResult> {
-        this.log.debug(__filename, `insertDocument(${doc})`, 'Attempting to insert document.');
+        let method = `insertDocument(${collectionName}, ${doc})`;
+        this.log.debug(__filename, method, 'Attempting to insert document.');
 
         if (this.db) {
-            return this.db.collection(collectionName).insertOne(doc);
+            return this.db
+                .collection(collectionName)
+                .insertOne(doc)
+                .catch((err) => {
+                    this.log.error(__filename, method, 'Error while inserting document -> ', err);
+                    return err;
+                });
         } else {
-            throw this.dataAccessFailure(`getAllDocuments(${collectionName})`);
+            throw this.dataAccessFailure(method);
         }
     }
 
