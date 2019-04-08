@@ -18,6 +18,9 @@ class MazeDao {
         }
         return this.instance;
     }
+    /**
+     * Initialize the database connection
+     */
     initConnection() {
         this.log.debug(__filename, 'initConnection()', 'Initializing MongoDB Client connection');
         mongodb_1.MongoClient.connect(Config_1.Config.getInstance().MONGO_CONNSTR, { useNewUrlParser: true }, function (err, client) {
@@ -33,6 +36,11 @@ class MazeDao {
             }
         });
     }
+    /**
+     * Return the document count of the given collection
+     *
+     * @param collectionName string
+     */
     countDocuments(collectionName) {
         this.log.debug(__filename, `countDocuments(${collectionName})`, 'Attempting to get document count.');
         if (this.db) {
@@ -42,6 +50,11 @@ class MazeDao {
             throw this.dataAccessFailure(`countDocuments(${collectionName})`);
         }
     }
+    /**
+     * Return all documents in the given collection (danger - not paged!)
+     *
+     * @param collectionName string
+     */
     getAllDocuments(collectionName) {
         this.log.debug(__filename, `getAllDocuments(${collectionName})`, 'Attempting to get all documents in collection.');
         if (this.db) {
@@ -51,6 +64,12 @@ class MazeDao {
             throw this.dataAccessFailure(`getAllDocuments(${collectionName})`);
         }
     }
+    /**
+     * Insert the given document into the specified collection
+     *
+     * @param collectionName string
+     * @param doc any
+     */
     insertDocument(collectionName, doc) {
         this.log.debug(__filename, `insertDocument(${doc})`, 'Attempting to insert document.');
         if (this.db) {
@@ -60,6 +79,12 @@ class MazeDao {
             throw this.dataAccessFailure(`getAllDocuments(${collectionName})`);
         }
     }
+    /**
+     * Delete the document with the given ID from the specified collection
+     *
+     * @param collectionName string
+     * @param id string
+     */
     deleteDocument(collectionName, id) {
         this.log.debug(__filename, `deleteDocument(${id})`, 'Attempting to delete document.');
         if (this.db) {
@@ -75,9 +100,17 @@ class MazeDao {
             throw this.dataAccessFailure(`getAllDocuments(${collectionName})`);
         }
     }
+    /**
+     * Returns true of the db object is defined.
+     */
     isConnected() {
         return this.db != undefined;
     }
+    /**
+     * Private function to handle internal db connection errors
+     *
+     * @param method string
+     */
     dataAccessFailure(method) {
         let msg = 'MongoClient.Db is undefined.  Connection failure?';
         let err = new Error(msg);

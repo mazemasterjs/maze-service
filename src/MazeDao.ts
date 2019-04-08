@@ -25,6 +25,9 @@ export class MazeDao {
         return this.instance;
     }
 
+    /**
+     * Initialize the database connection
+     */
     private initConnection() {
         this.log.debug(__filename, 'initConnection()', 'Initializing MongoDB Client connection');
         MongoClient.connect(Config.getInstance().MONGO_CONNSTR, {useNewUrlParser: true}, function(err, client) {
@@ -40,6 +43,11 @@ export class MazeDao {
         });
     }
 
+    /**
+     * Return the document count of the given collection
+     *
+     * @param collectionName string
+     */
     public countDocuments(collectionName: string): Promise<number> {
         this.log.debug(__filename, `countDocuments(${collectionName})`, 'Attempting to get document count.');
 
@@ -50,6 +58,11 @@ export class MazeDao {
         }
     }
 
+    /**
+     * Return all documents in the given collection (danger - not paged!)
+     *
+     * @param collectionName string
+     */
     public getAllDocuments(collectionName: string): Cursor<any> {
         this.log.debug(__filename, `getAllDocuments(${collectionName})`, 'Attempting to get all documents in collection.');
         if (this.db) {
@@ -59,6 +72,12 @@ export class MazeDao {
         }
     }
 
+    /**
+     * Insert the given document into the specified collection
+     *
+     * @param collectionName string
+     * @param doc any
+     */
     public insertDocument(collectionName: string, doc: any): Promise<InsertOneWriteOpResult> {
         this.log.debug(__filename, `insertDocument(${doc})`, 'Attempting to insert document.');
 
@@ -69,6 +88,12 @@ export class MazeDao {
         }
     }
 
+    /**
+     * Delete the document with the given ID from the specified collection
+     *
+     * @param collectionName string
+     * @param id string
+     */
     public deleteDocument(collectionName: string, id: string): Promise<DeleteWriteOpResultObject> {
         this.log.debug(__filename, `deleteDocument(${id})`, 'Attempting to delete document.');
 
@@ -85,10 +110,18 @@ export class MazeDao {
         }
     }
 
+    /**
+     * Returns true of the db object is defined.
+     */
     public isConnected(): boolean {
         return this.db != undefined;
     }
 
+    /**
+     * Private function to handle internal db connection errors
+     *
+     * @param method string
+     */
     private dataAccessFailure(method: string): Error {
         let msg: string = 'MongoClient.Db is undefined.  Connection failure?';
         let err: Error = new Error(msg);
