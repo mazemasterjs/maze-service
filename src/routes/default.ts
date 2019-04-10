@@ -5,15 +5,15 @@ import fs from 'fs';
 import path from 'path';
 import Config from '@mazemasterjs/shared-library/Config';
 import Service from '@mazemasterjs/shared-library/Service';
-import MazeDao from '../MazeDao';
-import {Cursor} from 'mongodb';
 import Maze from '@mazemasterjs/shared-library/Maze';
+import MongoDBHandler from '@mazemasterjs/shared-library/MongoDBHandler';
 export const defaultRouter = express.Router();
-import MongoError from 'mongodb';
 
 const log: Logger = Logger.getInstance();
 const config: Config = Config.getInstance();
-const mazeDao: MazeDao = MazeDao.getInstance();
+let mongo: MongoDBHandler = function()MongoDBHandler.getInstance().then((instance) => {
+    return instance;
+});
 
 /**
  * Response with json maze-count value showing the count of all maze documents found
@@ -50,9 +50,11 @@ let getMazes = async (req: express.Request, res: express.Response) => {
  */
 let getMaze = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    let maze: Maze = await mazeDao.getDocument(config.MONGO_COL_MAZES, req.params.id);
+    let doc: any = await mazeDao.getDocument(config.MONGO_COL_MAZES, req.params.id);
+    let maze: Maze = new Maze(doc);
 
     if (maze) {
+        log.trace(__filename, req.url, `Maze ${maze.Id} found and returned.`);
         res.status(200).json(maze);
     } else {
         log.warn(__filename, `Route -> [${req.url}]`, `Maze [${req.params.id}] not found, returning 404.`);
