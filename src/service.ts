@@ -22,26 +22,37 @@ const app = express();
 // prep reference for express server
 let httpServer: Server;
 
+// prep reference for
+let mongo: MongoDBHandler;
+
 /**
  * APPLICATION ENTRY POINT
  */
-let service = async function startService() {
+let dbConnected = async function startService() {
+    let ret = true;
     log.info(__filename, 'startService()', 'Opening database connection');
     await MongoDBHandler.getInstance()
-        .then((instance) => {
-            log.info(__filename, 'startService()', 'Database connection opened, launching express server');
-            launchExpress();
+        .then(() => {
+            log.debug(__filename, 'startService()', 'Database connection opened, launching express server');
+            return true;
         })
         .catch((err) => {
-            throw err;
+            log.error(__filename, 'startService()', 'Unable to connect to database.', err);
+            return false;
         });
 };
+
+if (dbConnected) {
+    launchExpress();
+} else {
+    doShutdown();
+}
 
 /**
  * Starts up the express server
  */
 function launchExpress() {
-    log.info(__filename, 'launchExpress()', 'Server started.');
+    log.debug(__filename, 'launchExpress()', 'Configuring express HTTPServer...');
 
     // enable http compression middleware
     app.use(compression());
@@ -65,9 +76,13 @@ function launchExpress() {
 
     // and start the httpServer - starts the service
     httpServer = app.listen(config.HTTP_PORT, () => {
-        // server is now live
-        config.READY_TO_ROCK = true;
-        log.force(__filename, 'launchExpress()', fmt('MazeMasterJS/%s -> Service live and ready Now listening on port %d.', config.APP_NAME, config.HTTP_PORT));
+        // sever is now listening - live probe should be active, but ready probe must wait for
+        // routes to be mapped.
+        log.info(
+            __filename,
+            'launchExpress()',
+            fmt('MazeMasterJS/%s -> Service is now LIVE (but not ready) and listening on port %d.', config.APP_NAME, config.HTTP_PORT)
+        );
     });
 }
 
@@ -94,7 +109,8 @@ process.on('SIGTERM', function onSigTerm() {
  */
 function doShutdown() {
     log.force(__filename, 'doShutDown()', 'Closing DB connections...');
-    MazeDao.getInstance().disconnect();
+
+    // MongoDBHandler.getInstance().disconnect();
 
     log.force(__filename, 'doShutDown()', 'Shutting down HTTPServer...');
     httpServer.close();
