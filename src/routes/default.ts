@@ -1,4 +1,5 @@
 import express from 'express';
+import {Cursor} from 'mongodb';
 import {format as fmt, isUndefined, isNull} from 'util';
 import {Logger} from '@mazemasterjs/logger';
 import fs from 'fs';
@@ -11,9 +12,23 @@ export const defaultRouter = express.Router();
 
 const log: Logger = Logger.getInstance();
 const config: Config = Config.getInstance();
-let mongo: MongoDBHandler = function()MongoDBHandler.getInstance().then((instance) => {
-    return instance;
-});
+let mongo: MongoDBHandler;
+
+/**
+ * This just assigns mongo the instance of MongoDBHandler.  We shouldn't be
+ * able to get here without a database connection and existing instance, but
+ * we'll do some logging / error checking anyway.
+ */
+MongoDBHandler.getInstance()
+    .then((instance) => {
+        mongo = instance;
+        // enable the "readiness" probe that tells OpenShift that it can send traffic to this service's pod
+        config.READY_TO_ROCK = true;
+        log.info(__filename, 'MongoDBHandler.getInstance()', 'Service is now LIVE, READY, and taking requests.');
+    })
+    .catch((err) => {
+        log.error(__filename, 'MongoDBHandler.getInstance()', 'Error getting MongoDBHandler instance ->', err);
+    });
 
 /**
  * Response with json maze-count value showing the count of all maze documents found
@@ -22,11 +37,17 @@ let mongo: MongoDBHandler = function()MongoDBHandler.getInstance().then((instanc
  * @param req - express.Request
  * @param res - express.Response
  */
-let getDocCount = async (req: express.Request, res: express.Response) => {
+let getMazeCount = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    let count = await mazeDao.countDocuments(config.MONGO_COL_MAZES);
-    log.debug(__filename, 'getDocCount()', 'Document Count=' + count);
-    res.status(200).json({collection: config.MONGO_COL_MAZES, 'maze-count': count});
+    let count = await mongo
+        .countDocuments(config.MONGO_COL_MAZES)
+        .then((count) => {
+            log.debug(__filename, 'getMazeCount()', 'Maze Count=' + count);
+            res.status(200).json({collection: config.MONGO_COL_MAZES, 'maze-count': count});
+        })
+        .catch((err) => {
+            res.status(500).json({status: '500', message: err.message});
+        });
 };
 
 /**
@@ -38,60 +59,69 @@ let getDocCount = async (req: express.Request, res: express.Response) => {
  */
 let getMazes = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    let curMazes: Cursor<any> = await mazeDao.getAllDocuments(config.MONGO_COL_MAZES);
-    res.status(200).json(await curMazes.toArray());
+    let curMazes: Cursor<any> = await mongo.getAllDocuments(config.MONGO_COL_MAZES);
+    res.status(200).json(
+        await curMazes.toArray().catch((err) => {
+            res.status(500).json({status: '500', message: err.message});
+        })
+    );
 };
 
 /**
- * Gets and returns a json maze object with the specified ID.
+ * Gets and returns a json maze object with the specified Maze.Id.
  *
  * @param req - express.Request
  * @param res - express.Response
  */
 let getMaze = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    let doc: any = await mazeDao.getDocument(config.MONGO_COL_MAZES, req.params.id);
-    let maze: Maze = new Maze(doc);
-
-    if (maze) {
-        log.trace(__filename, req.url, `Maze ${maze.Id} found and returned.`);
-        res.status(200).json(maze);
-    } else {
-        log.warn(__filename, `Route -> [${req.url}]`, `Maze [${req.params.id}] not found, returning 404.`);
-        res.status(404).json({
-            status: '404',
-            message: 'Maze not found.'
+    await mongo
+        .getDocument(config.MONGO_COL_MAZES, req.params.id)
+        .then((doc) => {
+            if (doc) {
+                let maze: Maze = new Maze(doc);
+                log.trace(__filename, req.url, `Maze ${maze.Id} found and returned.`);
+                res.status(200).json(maze);
+            } else {
+                res.status(404).json({status: '404', message: 'Maze not found.'});
+            }
+        })
+        .catch((err) => {
+            log.error(__filename, `Route -> [${req.url}]`, 'Error fetching maze ->', err);
+            res.status(500).json({status: '500', message: err.message});
         });
-    }
 };
 
 //TODO REPLACE TEST METHOD
 let insertMaze = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     let maze: Maze = new Maze().generate(3, 3, 2, 'AnotherTest', 'AnotherSeed');
-    let ret = await mazeDao.insertDocument(config.MONGO_COL_MAZES, maze);
-
-    // check for errors and respond correctly
-    if (ret instanceof Error) {
-        res.status(500).json({error: ret.name, message: ret.message});
-    } else {
-        res.status(200).json(ret);
-    }
+    let ret = await mongo
+        .insertDocument(config.MONGO_COL_MAZES, maze)
+        .then((result) => {
+            res.status(200).json(ret);
+        })
+        .catch((err: Error) => {
+            log.error(__filename, req.url, 'Error inserting maze ->', err);
+            res.status(500).json({status: '400', message: `${err.name} - ${err.message}`});
+        });
 };
 
 //TODO REPLACE TEST METHOD
 let updateMaze = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
 
-    let doc = await mazeDao.getDocument(config.MONGO_COL_MAZES, '3:3:2:AnotherSeed');
+    let doc = await mongo.getDocument(config.MONGO_COL_MAZES, '3:3:2:AnotherSeed');
     let maze = new Maze(doc);
 
     console.log(`Got maze ${maze.Id}, updating...`);
 
     maze.Note = 'MongoDal test: Note_' + new Date().getTime();
-    console.log(`Note: ${maze.Note}`);
 
-    let ret: any = await mazeDao.updateDocument(config.MONGO_COL_MAZES, maze.Id, maze);
+    let ret: any = await mongo
+        .updateDocument(config.MONGO_COL_MAZES, maze.Id, maze)
+        .then((result) => {})
+        .catch((err) => {});
     console.log('Update complete.');
 
     // check for errors and respond correctly
@@ -110,7 +140,7 @@ let updateMaze = async (req: express.Request, res: express.Response) => {
  */
 let deleteMaze = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    let ret = await mazeDao.deleteDocument(config.MONGO_COL_MAZES, req.params.id);
+    let ret = await mongo.deleteDocument(config.MONGO_COL_MAZES, req.params.id);
 
     // check for errors and respond correctly
     if (ret instanceof Error) {
@@ -221,7 +251,7 @@ function getProtocolHostPort(req: express.Request): string {
 }
 
 // Route -> Handler mappings
-defaultRouter.get('/get/count', getDocCount);
+defaultRouter.get('/get/count', getMazeCount);
 defaultRouter.get('/get/all', getMazes);
 defaultRouter.get('/get/:id', getMaze);
 defaultRouter.get('/delete/:id', deleteMaze);
