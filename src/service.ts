@@ -7,9 +7,8 @@ import {Logger} from '@mazemasterjs/logger';
 import {defaultRouter} from './routes/default';
 import {probesRouter} from './routes/probes';
 import {genRouter} from './routes/generate';
-import {MazeDao} from './MazeDao';
+import {MongoDBHandler} from '@mazemasterjs/shared-library/MongoDBHandler';
 import {Server} from 'http';
-import Maze from '@mazemasterjs/shared-library/Maze';
 
 // load config
 const config = Config.getInstance();
@@ -23,20 +22,31 @@ const app = express();
 // prep reference for express server
 let httpServer: Server;
 
-// used to initialize the database connection
-let mazeDao: MazeDao;
-
-startServer();
+/**
+ * APPLICATION ENTRY POINT
+ */
+let service = async function startService() {
+    log.info(__filename, 'startService()', 'Opening database connection');
+    await MongoDBHandler.getInstance()
+        .then((instance) => {
+            log.info(__filename, 'startService()', 'Database connection opened, launching express server');
+            launchExpress();
+        })
+        .catch((err) => {
+            throw err;
+        });
+};
 
 /**
  * Starts up the express server
  */
-function startServer() {
-    log.info(__filename, 'startServer()', 'Server started.');
+function launchExpress() {
+    log.info(__filename, 'launchExpress()', 'Server started.');
 
     // enable http compression middleware
     app.use(compression());
 
+    // enable ejs view rendering engine
     app.set('view engine', 'ejs');
 
     // enable bodyParser middleware for json
@@ -53,51 +63,12 @@ function startServer() {
     // set up the default route handler
     app.use('/api/maze', defaultRouter);
 
-    // and start the service
+    // and start the httpServer - starts the service
     httpServer = app.listen(config.HTTP_PORT, () => {
-        log.force(__filename, 'startServer()', fmt('MazeMasterJS/%s -> Now listening (not ready) on port %d.', config.APP_NAME, config.HTTP_PORT));
-
-        mazeDao = MazeDao.getInstance();
-
-        // need to give mazeDao a chance to connect so we'll poll it
-        // for a few seconds before giving up and shutting down.
-        let timeoutCount = 10; // we'll check 10 times for a DB connection before failing
-        let dbConnCheckTimer = setInterval(function() {
-            log.debug(__filename, 'startServer().dbConnCheckTimer()', 'Awaiting database connection -> ' + timeoutCount);
-
-            // clear the timer if connected or out of attempts
-            if (mazeDao.isConnected() || timeoutCount == 0) {
-                clearInterval(dbConnCheckTimer);
-            }
-
-            // clear the timer and open server if connected
-            if (mazeDao.isConnected()) {
-                log.debug(__filename, 'startServer().dbConnCheckTimer()', 'Database connection established.');
-                openServer();
-            } else {
-                // shut down the app if our countdown reaches zero
-                if (timeoutCount <= 0) {
-                    log.warn(__filename, 'startServer().dbConnCheckTimer()', 'Database connection timed out, shutting down.');
-                    doShutdown();
-                }
-            }
-
-            // decrement countdown with every interval
-            timeoutCount--;
-        }, 250);
+        // server is now live
+        config.READY_TO_ROCK = true;
+        log.force(__filename, 'launchExpress()', fmt('MazeMasterJS/%s -> Service live and ready Now listening on port %d.', config.APP_NAME, config.HTTP_PORT));
     });
-}
-
-/**
- * Sets server config ready flag, enabling live/readiness probes so that
- * orchestration hosts know to start directing traffic to this service
- */
-function openServer() {
-    // set the ready flag for live/readiness probes and announce
-    config.READY_TO_ROCK = true;
-
-    // announce service available
-    log.force(__filename, 'openServer()', fmt('MazeMasterJS/%s -> Now live and ready on http://%s:%d', config.APP_NAME, config.HOST_NAME, config.HTTP_PORT));
 }
 
 /**
