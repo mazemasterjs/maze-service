@@ -28,24 +28,18 @@ let mongo: MongoDBHandler;
 /**
  * APPLICATION ENTRY POINT
  */
-let dbConnected = async function startService() {
-    let ret = true;
-    log.info(__filename, 'startService()', 'Opening database connection');
+async function startService() {
+    launchExpress();
+    log.info(__filename, 'startService()', 'Opening database connection...');
     await MongoDBHandler.getInstance()
-        .then(() => {
-            log.debug(__filename, 'startService()', 'Database connection opened, launching express server');
-            return true;
+        .then((instance) => {
+            mongo = instance;
+            log.debug(__filename, 'startService()', 'Database connection ready.');
         })
         .catch((err) => {
             log.error(__filename, 'startService()', 'Unable to connect to database.', err);
-            return false;
+            doShutdown();
         });
-};
-
-if (dbConnected) {
-    launchExpress();
-} else {
-    doShutdown();
 }
 
 /**
@@ -108,13 +102,20 @@ process.on('SIGTERM', function onSigTerm() {
  * Gracefully shut down the service
  */
 function doShutdown() {
-    log.force(__filename, 'doShutDown()', 'Closing DB connections...');
+    log.force(__filename, 'doShutDown()', 'Service shutdown commenced.');
+    if (mongo) {
+        log.force(__filename, 'doShutDown()', 'Closing DB connections...');
+        mongo.disconnect();
+    }
 
-    // MongoDBHandler.getInstance().disconnect();
-
-    log.force(__filename, 'doShutDown()', 'Shutting down HTTPServer...');
-    httpServer.close();
+    if (httpServer) {
+        log.force(__filename, 'doShutDown()', 'Shutting down HTTPServer...');
+        httpServer.close();
+    }
 
     log.force(__filename, 'doShutDown()', 'Exiting process...');
     process.exit(0);
 }
+
+// Let's light the tires and kick the fires...
+startService();
