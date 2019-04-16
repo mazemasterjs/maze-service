@@ -19,13 +19,13 @@ const Config_1 = require("@mazemasterjs/shared-library/Config");
 const logger_1 = require("@mazemasterjs/logger");
 const default_1 = require("./routes/default");
 const probes_1 = require("./routes/probes");
-const generate_1 = require("./routes/generate");
 const MongoDBHandler_1 = require("@mazemasterjs/shared-library/MongoDBHandler");
+const express_validator_1 = __importDefault(require("express-validator"));
 // load config
 const config = Config_1.Config.getInstance();
 // set up logger
 const log = logger_1.Logger.getInstance();
-// set up express
+// instatiate express
 const app = express_1.default();
 // prep reference for express server
 let httpServer;
@@ -56,6 +56,8 @@ function launchExpress() {
     log.debug(__filename, 'launchExpress()', 'Configuring express HTTPServer...');
     // enable http compression middleware
     app.use(compression_1.default());
+    // enable validation / sanitation middleware
+    app.use(express_validator_1.default());
     // enable ejs view rendering engine
     app.set('view engine', 'ejs');
     // enable bodyParser middleware for json
@@ -64,8 +66,6 @@ function launchExpress() {
     app.use(body_parser_1.default.json());
     // set up the probes router (live/ready checks)
     app.use('/api/maze/probes', probes_1.probesRouter);
-    // set up the generation route handler
-    app.use('/api/maze/generate', generate_1.genRouter);
     // set up the default route handler
     app.use('/api/maze', default_1.defaultRouter);
     // and start the httpServer - starts the service

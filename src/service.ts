@@ -9,6 +9,7 @@ import {probesRouter} from './routes/probes';
 import {genRouter} from './routes/generate';
 import {MongoDBHandler} from '@mazemasterjs/shared-library/MongoDBHandler';
 import {Server} from 'http';
+import expressValidator from 'express-validator';
 
 // load config
 const config = Config.getInstance();
@@ -16,7 +17,7 @@ const config = Config.getInstance();
 // set up logger
 const log = Logger.getInstance();
 
-// set up express
+// instatiate express
 const app = express();
 
 // prep reference for express server
@@ -51,6 +52,9 @@ function launchExpress() {
     // enable http compression middleware
     app.use(compression());
 
+    // enable validation / sanitation middleware
+    app.use(expressValidator());
+
     // enable ejs view rendering engine
     app.set('view engine', 'ejs');
 
@@ -61,9 +65,6 @@ function launchExpress() {
 
     // set up the probes router (live/ready checks)
     app.use('/api/maze/probes', probesRouter);
-
-    // set up the generation route handler
-    app.use('/api/maze/generate', genRouter);
 
     // set up the default route handler
     app.use('/api/maze', defaultRouter);

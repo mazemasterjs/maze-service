@@ -19,9 +19,11 @@ const path_1 = __importDefault(require("path"));
 const Config_1 = __importDefault(require("@mazemasterjs/shared-library/Config"));
 const Maze_1 = __importDefault(require("@mazemasterjs/shared-library/Maze"));
 const MongoDBHandler_1 = __importDefault(require("@mazemasterjs/shared-library/MongoDBHandler"));
+const check_1 = require("express-validator/check");
 exports.defaultRouter = express_1.default.Router();
 const log = logger_1.Logger.getInstance();
 const config = Config_1.default.getInstance();
+const ROUTE_PATH = '/api/maze';
 let mongo;
 /**
  * This just assigns mongo the instance of MongoDBHandler.  We shouldn't be
@@ -95,6 +97,53 @@ let getMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
         log.error(__filename, `Route -> [${req.url}]`, 'Error fetching maze ->', err);
         res.status(500).json({ status: '500', message: err.message });
     });
+});
+/**
+ * Gets and returns an html document to display the maze with the specified Maze.Id.
+ *
+ * @param req - express.Request
+ * @param res - express.Response
+ */
+let viewMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
+    log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    yield mongo
+        .getDocument(config.MONGO_COL_MAZES, req.params.id)
+        .then((doc) => {
+        if (doc) {
+            let maze = new Maze_1.default(doc);
+            log.trace(__filename, req.url, `Maze ${maze.Id} found and returned.`);
+            res.status(200).render('viewMaze.ejs', { maze: maze });
+        }
+        else {
+            res.status(404).json({ status: '404', message: 'Maze not found.' });
+        }
+    })
+        .catch((err) => {
+        log.error(__filename, `Route -> [${req.url}]`, 'Error fetching maze ->', err);
+        res.status(500).json({ status: '500', message: err.message });
+    });
+});
+/**
+ * Generate a maze from the provided values and insert it into the database
+ * Note: Input validation is built into Maze.Generate()
+ * @param req
+ * @param res
+ */
+let generateMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
+    log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    let height = parseInt(req.params.height);
+    let width = parseInt(req.params.width);
+    let challenge = parseInt(req.params.challenge);
+    let name = req.params.name;
+    let seed = req.params.seed;
+    try {
+        let maze = new Maze_1.default().generate(height, width, challenge, name, seed);
+        res.status(200).json(maze);
+    }
+    catch (err) {
+        log.error(__filename, req.url, 'Error inserting maze ->', err);
+        res.status(400).json({ status: '400', message: `${err.name} - ${err.message}` });
+    }
 });
 //TODO REPLACE TEST METHOD
 let insertMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
@@ -228,7 +277,7 @@ function getSvcDocUrl(req) {
  * @param req
  */
 function rebuildUrl(req) {
-    return util_1.format('%s', getProtocolHostPort(req), req.url);
+    return util_1.format('%s%s%s', getProtocolHostPort(req), ROUTE_PATH, req.path);
 }
 /**
  * Get and return the protocol, host, and port for the current
@@ -243,15 +292,39 @@ function getProtocolHostPort(req) {
 exports.defaultRouter.get('/get/count', getMazeCount);
 exports.defaultRouter.get('/get/all', getMazes);
 exports.defaultRouter.get('/get/:id', getMaze);
+exports.defaultRouter.get('/view/:id', viewMaze);
 exports.defaultRouter.get('/delete/:id', deleteMaze);
-exports.defaultRouter.get('/insert/test', insertMaze);
-exports.defaultRouter.get('/update/test', updateMaze);
 exports.defaultRouter.get('/favicon.ico', getFavicon);
 exports.defaultRouter.get('/css/:file', getCssFile);
 exports.defaultRouter.get('/help', getServiceDoc);
 exports.defaultRouter.get('/help.json', getServiceDoc);
 exports.defaultRouter.get('/help.html', renderHelp);
 exports.defaultRouter.get('/service', getServiceDoc);
+exports.defaultRouter.get('/generate/:height/:width/:challenge/:name/:seed', [
+    check_1.check('height')
+        .isInt({ min: config.MAZE_MIN_HEIGHT, max: config.MAZE_MAX_HEIGHT })
+        .trim()
+        .escape(),
+    check_1.check('width')
+        .isInt({ min: config.MAZE_MIN_WIDTH, max: config.MAZE_MAX_WIDTH })
+        .trim()
+        .escape(),
+    check_1.check('challenge')
+        .isInt({ min: 0, max: 10 })
+        .trim()
+        .escape(),
+    check_1.check('name')
+        .isLength({ min: 3, max: 32 })
+        .trim()
+        .escape(),
+    check_1.check('seed')
+        .isLength({ min: 3, max: 32 })
+        .trim()
+        .escape()
+], generateMaze);
+exports.defaultRouter.put('/insert', insertMaze);
+exports.defaultRouter.put('/update', updateMaze);
+// capture all unhandled routes
 exports.defaultRouter.get('/*', unhandledRoute);
 exports.default = exports.defaultRouter;
 //# sourceMappingURL=default.js.map
