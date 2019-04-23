@@ -1,17 +1,17 @@
 import express from 'express';
 import {Cursor} from 'mongodb';
-import {format as fmt, isUndefined, isNull} from 'util';
+import {format as fmt} from 'util';
 import {Logger} from '@mazemasterjs/logger';
-import fs from 'fs';
-import path from 'path';
 import Config from '@mazemasterjs/shared-library/Config';
 import Service from '@mazemasterjs/shared-library/Service';
 import Maze from '@mazemasterjs/shared-library/Maze';
 import MongoDBHandler from '@mazemasterjs/shared-library/MongoDBHandler';
+
 export const defaultRouter = express.Router();
 
 const log: Logger = Logger.getInstance();
 const config: Config = Config.getInstance();
+const ROUTE_PATH: string = '/api/maze';
 let mongo: MongoDBHandler;
 
 /**
@@ -39,7 +39,7 @@ MongoDBHandler.getInstance()
  */
 let getMazeCount = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    let count = await mongo
+    await mongo
         .countDocuments(config.MONGO_COL_MAZES)
         .then((count) => {
             log.debug(__filename, 'getMazeCount()', 'Maze Count=' + count);
@@ -59,12 +59,12 @@ let getMazeCount = async (req: express.Request, res: express.Response) => {
  */
 let getMazes = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    let curMazes: Cursor<any> = await mongo.getAllDocuments(config.MONGO_COL_MAZES);
-    res.status(200).json(
-        await curMazes.toArray().catch((err) => {
-            res.status(500).json({status: '500', message: err.message});
-        })
-    );
+    try {
+        let mazes = await mongo.getAllDocuments(config.MONGO_COL_MAZES).toArray();
+        res.status(200).json(mazes);
+    } catch (err) {
+        res.status(500).json({status: '500', message: err.message});
+    }
 };
 
 /**
@@ -92,14 +92,67 @@ let getMaze = async (req: express.Request, res: express.Response) => {
         });
 };
 
-//TODO REPLACE TEST METHOD
+/**
+ * Gets and returns an html document to display the maze with the specified Maze.Id.
+ *
+ * @param req - express.Request
+ * @param res - express.Response
+ */
+let viewMaze = async (req: express.Request, res: express.Response) => {
+    log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    await mongo
+        .getDocument(config.MONGO_COL_MAZES, req.params.id)
+        .then((doc) => {
+            if (doc) {
+                let maze: Maze = new Maze(doc);
+                log.trace(__filename, req.url, `Maze ${maze.Id} found and returned.`);
+                res.status(200).render('viewMaze.ejs', {pageTitle: 'Maze Viewer', maze: maze});
+            } else {
+                res.status(404).json({status: '404', message: 'Maze not found.'});
+            }
+        })
+        .catch((err) => {
+            log.error(__filename, `Route -> [${req.url}]`, 'Error fetching maze ->', err);
+            res.status(500).json({status: '500', message: err.message});
+        });
+};
+
+/**
+ * Generate a new maze from the given parameters and either return as json or render an HTML preview.
+ * Note: Input validation is built into Maze.Generate()
+ * @param req - supports query paramenter "?html" - if present, will render a maze preview instead of returning json.
+ * @param res
+ */
+let generateMaze = async (req: express.Request, res: express.Response) => {
+    log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    try {
+        let maze: Maze = new Maze().generate(req.params.height, req.params.width, req.params.challenge, encodeURI(req.params.name), encodeURI(req.params.seed));
+
+        if (req.query.html != undefined) {
+            res.status(200).render('viewMaze.ejs', {pageTitle: 'Maze Preview', maze: maze});
+        } else {
+            res.status(200).json(maze);
+        }
+    } catch (err) {
+        log.error(__filename, req.url, 'Error generating maze ->', err);
+        res.status(400).json({status: '400', message: `${err.name} - ${err.message}`});
+    }
+};
+
+/**
+ * Inserts the maze from the JSON http body into the mongo database.
+ *
+ * @param req
+ * @param res
+ */
 let insertMaze = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    let maze: Maze = new Maze().generate(3, 3, 2, 'AnotherTest', 'AnotherSeed');
-    let ret = await mongo
+    let maze = req.body;
+
+    await mongo
         .insertDocument(config.MONGO_COL_MAZES, maze)
         .then((result) => {
-            res.status(200).json(ret);
+            res.status(200).json(result);
         })
         .catch((err: Error) => {
             log.error(__filename, req.url, 'Error inserting maze ->', err);
@@ -107,29 +160,26 @@ let insertMaze = async (req: express.Request, res: express.Response) => {
         });
 };
 
-//TODO REPLACE TEST METHOD
+/**
+ * Updates the given maze with data from json body.
+ * MazeID is pulled from json body as well.
+ *
+ * @param req
+ * @param res
+ */
 let updateMaze = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    let maze = new Maze(req.body);
 
-    let doc = await mongo.getDocument(config.MONGO_COL_MAZES, '3:3:2:AnotherSeed');
-    let maze = new Maze(doc);
-
-    console.log(`Got maze ${maze.Id}, updating...`);
-
-    maze.Note = 'MongoDal test: Note_' + new Date().getTime();
-
-    let ret: any = await mongo
+    await mongo
         .updateDocument(config.MONGO_COL_MAZES, maze.Id, maze)
-        .then((result) => {})
-        .catch((err) => {});
-    console.log('Update complete.');
-
-    // check for errors and respond correctly
-    if (ret instanceof Error) {
-        res.status(500).json({error: ret.name, message: ret.message});
-    } else {
-        res.status(200).json(ret);
-    }
+        .then((result) => {
+            res.status(200).json(result);
+        })
+        .catch((err) => {
+            log.error(__filename, req.url, 'Error updating maze ->', err);
+            res.status(500).json({status: '500', message: `${err.name} - ${err.message}`});
+        });
 };
 
 /**
@@ -151,38 +201,18 @@ let deleteMaze = async (req: express.Request, res: express.Response) => {
 };
 
 /**
- * Handle favicon
- */
-let getFavicon = (req: express.Request, res: express.Response) => {
-    log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    res.setHeader('Content-Type', 'image/x-icon');
-    res.status(200).sendFile(path.resolve('views/images/favicon/favicon.ico'));
-};
-
-/**
- * Handle requets for .css files
- */
-let getCssFile = (req: express.Request, res: express.Response) => {
-    let cssFile: string = `views/css/${req.params.file}`;
-    log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    if (fs.existsSync(cssFile)) {
-        res.setHeader('Content-Type', 'text/css');
-        res.status(200).sendFile(path.resolve(cssFile));
-    } else {
-        log.warn(__filename, `Route -> [${req.url}]`, `File [${cssFile}] not found, returning 404.`);
-        res.sendStatus(404);
-    }
-};
-
-/**
- * Responds with the raw JSON service document
- *
+ * Responds with the raw JSON service document unless the "?html"
+ * parameter is found, in which case it renderse an HTML document
  * @param req
  * @param res
  */
 let getServiceDoc = (req: express.Request, res: express.Response) => {
     log.trace(__filename, `Route -> [${req.url}]`, 'Handling request.');
-    res.status(200).json(config.SERVICE_DOC);
+    if (req.query.html != undefined) {
+        res.render('help.ejs', {svcDoc: config.SERVICE_DOC});
+    } else {
+        res.status(200).json(config.SERVICE_DOC);
+    }
 };
 
 /**
@@ -214,18 +244,6 @@ let unhandledRoute = (req: express.Request, res: express.Response) => {
  *
  * @param req
  */
-function getHelpUrl(req: express.Request): string {
-    let svcData: Service = config.SERVICE_DOC;
-    let ep = svcData.getEndpointByName('help');
-    return fmt('%s%s%s', getProtocolHostPort(req), svcData.BaseUrl, ep.Url);
-}
-
-/**
- * Generate and a string-based link to the service document's help section using the
- * given request to determine URL parameters.
- *
- * @param req
- */
 function getSvcDocUrl(req: express.Request): string {
     let svcData: Service = config.SERVICE_DOC;
     let ep = svcData.getEndpointByName('service');
@@ -237,7 +255,7 @@ function getSvcDocUrl(req: express.Request): string {
  * @param req
  */
 function rebuildUrl(req: express.Request): string {
-    return fmt('%s', getProtocolHostPort(req), req.url);
+    return fmt('%s%s%s', getProtocolHostPort(req), ROUTE_PATH, req.path);
 }
 
 /**
@@ -250,19 +268,23 @@ function getProtocolHostPort(req: express.Request): string {
     return fmt('%s://%s', req.protocol, req.get('host'));
 }
 
-// Route -> Handler mappings
+// Route -> http.get mappings
 defaultRouter.get('/get/count', getMazeCount);
 defaultRouter.get('/get/all', getMazes);
 defaultRouter.get('/get/:id', getMaze);
+defaultRouter.get('/view/:id', viewMaze);
 defaultRouter.get('/delete/:id', deleteMaze);
-defaultRouter.get('/insert/test', insertMaze);
-defaultRouter.get('/update/test', updateMaze);
-defaultRouter.get('/favicon.ico', getFavicon);
-defaultRouter.get('/css/:file', getCssFile);
 defaultRouter.get('/help', getServiceDoc);
 defaultRouter.get('/help.json', getServiceDoc);
-defaultRouter.get('/help.html', renderHelp);
 defaultRouter.get('/service', getServiceDoc);
+defaultRouter.get('/generate/:height/:width/:challenge/:name/:seed', generateMaze);
+
+// Route - http.put mappings
+defaultRouter.put('/insert', insertMaze);
+defaultRouter.put('/update', updateMaze);
+
+// capture all unhandled routes
 defaultRouter.get('/*', unhandledRoute);
 
+// expose router as module
 export default defaultRouter;

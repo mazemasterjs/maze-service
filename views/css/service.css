@@ -1,6 +1,12 @@
+footer {
+    text-align: center;
+    color: gray;
+}
+
 .ep-block {
     border: solid 1px red;
 }
+
 .ep-title {
     font-weight: bold;
 }

@@ -1,0 +1,23 @@
+<% include head %>
+<body>
+    <h1><%= pageTitle %> - <%= decodeURI(maze.name) %></h1>
+    <ul>
+        <li><span class="fieldName">ID</span>: <span class="fieldVal"><%= maze.id %></span></li>
+        <li><span class="fieldName">Name</span>: <span class="fieldVal">maze.name %></span></li>
+        <li><span class="fieldName">Seed</span>: <span class="fieldVal">maze.seed %></span></li>
+        <li><span class="fieldName">Height</span>: <span class="fieldVal">maze.height %></span></li>
+        <li><span class="fieldName">Width</span>: <span class="fieldVal"><%= maze.width %></span></li>
+        <li><span class="fieldName">Challenge Level</span>: <span class="fieldVal"><%= maze.challenge %></span></li>
+        <li><span class="fieldName">Cell Count</span>: <span class="fieldVal"><%= (maze.height * maze.width) %></span></li>
+        <li><span class="fieldName">Trap Count</span>: <span class="fieldVal"><%= maze.trapCount %></span></li>
+        <li><span class="fieldName">Solution Length</span>: <span class="fieldVal"><%= maze.shortestPathLength %></span></li>
+        <li><span class="fieldName">Notes</span>: <span class="fieldVal"><%= maze.note === '' ? '(empty)' : maze.note %></span></li>
+    </ul>
+    <span style="text-align: center">
+        <h2>Text Rendering</h2>
+    </span>
+    <pre style="text-align: center"><%= maze.textRender %></pre>
+    <br /><br />
+    <hr />
+</body>
+<% include foot %>
