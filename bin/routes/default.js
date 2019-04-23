@@ -46,7 +46,7 @@ MongoDBHandler_1.default.getInstance()
  */
 let getMazeCount = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    let count = yield mongo
+    yield mongo
         .countDocuments(config.MONGO_COL_MAZES)
         .then((count) => {
         log.debug(__filename, 'getMazeCount()', 'Maze Count=' + count);
@@ -65,10 +65,13 @@ let getMazeCount = (req, res) => __awaiter(this, void 0, void 0, function* () {
  */
 let getMazes = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    let curMazes = yield mongo.getAllDocuments(config.MONGO_COL_MAZES);
-    res.status(200).json(yield curMazes.toArray().catch((err) => {
+    try {
+        let mazes = yield mongo.getAllDocuments(config.MONGO_COL_MAZES).toArray();
+        res.status(200).json(mazes);
+    }
+    catch (err) {
         res.status(500).json({ status: '500', message: err.message });
-    }));
+    }
 });
 /**
  * Gets and returns a json maze object with the specified Maze.Id.
@@ -171,7 +174,7 @@ let insertMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
 let updateMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     let maze = new Maze_1.default(req.body);
-    let ret = yield mongo
+    yield mongo
         .updateDocument(config.MONGO_COL_MAZES, maze.Id, maze)
         .then((result) => {
         res.status(200).json(result);
@@ -234,17 +237,6 @@ let unhandledRoute = (req, res) => {
         'service-document': getSvcDocUrl
     });
 };
-/**
- * Generate and a string-based link to the service document's help section using the
- * given request to determine URL parameters.
- *
- * @param req
- */
-function getHelpUrl(req) {
-    let svcData = config.SERVICE_DOC;
-    let ep = svcData.getEndpointByName('help');
-    return util_1.format('%s%s%s', getProtocolHostPort(req), svcData.BaseUrl, ep.Url);
-}
 /**
  * Generate and a string-based link to the service document's help section using the
  * given request to determine URL parameters.

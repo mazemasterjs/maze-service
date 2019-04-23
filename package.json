@@ -6,6 +6,7 @@
     "scripts": {
         "start": "node -r bin/service.js",
         "test": "test",
+        "sq": "sonar-scanner.bat",
         "watch": "nodemon -r dotenv/config bin/service.js -w bin/**/*.js",
         "local": "node -r dotenv/config bin/service.js"
     },
