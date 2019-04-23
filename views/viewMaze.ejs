@@ -11,7 +11,7 @@
         <li><span class="fieldName">Cell Count</span>: <span class="fieldVal"><%= (maze.height * maze.width) %></span></li>
         <li><span class="fieldName">Trap Count</span>: <span class="fieldVal"><%= maze.trapCount %></span></li>
         <li><span class="fieldName">Solution Length</span>: <span class="fieldVal"><%= maze.shortestPathLength %></span></li>
-        <li><span class="fieldName">Notes</span>: <span class="fieldVal"><%= maze.note %></span></li>
+        <li><span class="fieldName">Notes</span>: <span class="fieldVal"><%= maze.note === '' ? '(empty)' : maze.note %></span></li>
     </ul>
     <span style="text-align: center">
         <h2>Text Rendering</h2>

@@ -1,7 +1,7 @@
 import express from 'express';
-import { Cursor } from 'mongodb';
-import { format as fmt, isUndefined, isNull } from 'util';
-import { Logger } from '@mazemasterjs/logger';
+import {Cursor} from 'mongodb';
+import {format as fmt, isUndefined, isNull} from 'util';
+import {Logger} from '@mazemasterjs/logger';
 import Config from '@mazemasterjs/shared-library/Config';
 import Service from '@mazemasterjs/shared-library/Service';
 import Maze from '@mazemasterjs/shared-library/Maze';
@@ -20,13 +20,13 @@ let mongo: MongoDBHandler;
  * we'll do some logging / error checking anyway.
  */
 MongoDBHandler.getInstance()
-    .then(instance => {
+    .then((instance) => {
         mongo = instance;
         // enable the "readiness" probe that tells OpenShift that it can send traffic to this service's pod
         config.READY_TO_ROCK = true;
         log.info(__filename, 'MongoDBHandler.getInstance()', 'Service is now LIVE, READY, and taking requests.');
     })
-    .catch(err => {
+    .catch((err) => {
         log.error(__filename, 'MongoDBHandler.getInstance()', 'Error getting MongoDBHandler instance ->', err);
     });
 
@@ -41,12 +41,12 @@ let getMazeCount = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     let count = await mongo
         .countDocuments(config.MONGO_COL_MAZES)
-        .then(count => {
+        .then((count) => {
             log.debug(__filename, 'getMazeCount()', 'Maze Count=' + count);
-            res.status(200).json({ collection: config.MONGO_COL_MAZES, 'maze-count': count });
+            res.status(200).json({collection: config.MONGO_COL_MAZES, 'maze-count': count});
         })
-        .catch(err => {
-            res.status(500).json({ status: '500', message: err.message });
+        .catch((err) => {
+            res.status(500).json({status: '500', message: err.message});
         });
 };
 
@@ -61,8 +61,8 @@ let getMazes = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     let curMazes: Cursor<any> = await mongo.getAllDocuments(config.MONGO_COL_MAZES);
     res.status(200).json(
-        await curMazes.toArray().catch(err => {
-            res.status(500).json({ status: '500', message: err.message });
+        await curMazes.toArray().catch((err) => {
+            res.status(500).json({status: '500', message: err.message});
         })
     );
 };
@@ -77,18 +77,18 @@ let getMaze = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     await mongo
         .getDocument(config.MONGO_COL_MAZES, req.params.id)
-        .then(doc => {
+        .then((doc) => {
             if (doc) {
                 let maze: Maze = new Maze(doc);
                 log.trace(__filename, req.url, `Maze ${maze.Id} found and returned.`);
                 res.status(200).json(maze);
             } else {
-                res.status(404).json({ status: '404', message: 'Maze not found.' });
+                res.status(404).json({status: '404', message: 'Maze not found.'});
             }
         })
-        .catch(err => {
+        .catch((err) => {
             log.error(__filename, `Route -> [${req.url}]`, 'Error fetching maze ->', err);
-            res.status(500).json({ status: '500', message: err.message });
+            res.status(500).json({status: '500', message: err.message});
         });
 };
 
@@ -102,18 +102,18 @@ let viewMaze = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     await mongo
         .getDocument(config.MONGO_COL_MAZES, req.params.id)
-        .then(doc => {
+        .then((doc) => {
             if (doc) {
                 let maze: Maze = new Maze(doc);
                 log.trace(__filename, req.url, `Maze ${maze.Id} found and returned.`);
-                res.status(200).render('viewMaze.ejs', { pageTitle: 'Maze Viewer', maze: maze });
+                res.status(200).render('viewMaze.ejs', {pageTitle: 'Maze Viewer', maze: maze});
             } else {
-                res.status(404).json({ status: '404', message: 'Maze not found.' });
+                res.status(404).json({status: '404', message: 'Maze not found.'});
             }
         })
-        .catch(err => {
+        .catch((err) => {
             log.error(__filename, `Route -> [${req.url}]`, 'Error fetching maze ->', err);
-            res.status(500).json({ status: '500', message: err.message });
+            res.status(500).json({status: '500', message: err.message});
         });
 };
 
@@ -129,13 +129,13 @@ let generateMaze = async (req: express.Request, res: express.Response) => {
         let maze: Maze = new Maze().generate(req.params.height, req.params.width, req.params.challenge, encodeURI(req.params.name), encodeURI(req.params.seed));
 
         if (req.query.html != undefined) {
-            res.status(200).render('viewMaze.ejs', { pageTitle: 'Maze Preview', maze: maze });
+            res.status(200).render('viewMaze.ejs', {pageTitle: 'Maze Preview', maze: maze});
         } else {
             res.status(200).json(maze);
         }
     } catch (err) {
         log.error(__filename, req.url, 'Error generating maze ->', err);
-        res.status(400).json({ status: '400', message: `${err.name} - ${err.message}` });
+        res.status(400).json({status: '400', message: `${err.name} - ${err.message}`});
     }
 };
 
@@ -151,12 +151,12 @@ let insertMaze = async (req: express.Request, res: express.Response) => {
 
     await mongo
         .insertDocument(config.MONGO_COL_MAZES, maze)
-        .then(result => {
+        .then((result) => {
             res.status(200).json(result);
         })
         .catch((err: Error) => {
             log.error(__filename, req.url, 'Error inserting maze ->', err);
-            res.status(500).json({ status: '400', message: `${err.name} - ${err.message}` });
+            res.status(500).json({status: '400', message: `${err.name} - ${err.message}`});
         });
 };
 
@@ -169,16 +169,16 @@ let insertMaze = async (req: express.Request, res: express.Response) => {
  */
 let updateMaze = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    let maze = req.body;
+    let maze = new Maze(req.body);
 
     let ret: any = await mongo
         .updateDocument(config.MONGO_COL_MAZES, maze.Id, maze)
-        .then(result => {
+        .then((result) => {
             res.status(200).json(result);
         })
-        .catch(err => {
+        .catch((err) => {
             log.error(__filename, req.url, 'Error updating maze ->', err);
-            res.status(500).json({ status: '500', message: `${err.name} - ${err.message}` });
+            res.status(500).json({status: '500', message: `${err.name} - ${err.message}`});
         });
 };
 
@@ -194,7 +194,7 @@ let deleteMaze = async (req: express.Request, res: express.Response) => {
 
     // check for errors and respond correctly
     if (ret instanceof Error) {
-        res.status(500).json({ error: ret.name, message: ret.message });
+        res.status(500).json({error: ret.name, message: ret.message});
     } else {
         res.status(200).json(ret);
     }
@@ -209,7 +209,7 @@ let deleteMaze = async (req: express.Request, res: express.Response) => {
 let getServiceDoc = (req: express.Request, res: express.Response) => {
     log.trace(__filename, `Route -> [${req.url}]`, 'Handling request.');
     if (req.query.html != undefined) {
-        res.render('help.ejs', { svcDoc: config.SERVICE_DOC });
+        res.render('help.ejs', {svcDoc: config.SERVICE_DOC});
     } else {
         res.status(200).json(config.SERVICE_DOC);
     }
@@ -223,7 +223,7 @@ let getServiceDoc = (req: express.Request, res: express.Response) => {
  */
 let renderHelp = (req: express.Request, res: express.Response) => {
     log.trace(__filename, `Route -> [${req.url}]`, 'Handling request.');
-    res.render('help.ejs', { svcDoc: config.SERVICE_DOC });
+    res.render('help.ejs', {svcDoc: config.SERVICE_DOC});
 };
 
 /**

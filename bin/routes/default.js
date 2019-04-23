@@ -28,13 +28,13 @@ let mongo;
  * we'll do some logging / error checking anyway.
  */
 MongoDBHandler_1.default.getInstance()
-    .then(instance => {
+    .then((instance) => {
     mongo = instance;
     // enable the "readiness" probe that tells OpenShift that it can send traffic to this service's pod
     config.READY_TO_ROCK = true;
     log.info(__filename, 'MongoDBHandler.getInstance()', 'Service is now LIVE, READY, and taking requests.');
 })
-    .catch(err => {
+    .catch((err) => {
     log.error(__filename, 'MongoDBHandler.getInstance()', 'Error getting MongoDBHandler instance ->', err);
 });
 /**
@@ -48,11 +48,11 @@ let getMazeCount = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     let count = yield mongo
         .countDocuments(config.MONGO_COL_MAZES)
-        .then(count => {
+        .then((count) => {
         log.debug(__filename, 'getMazeCount()', 'Maze Count=' + count);
         res.status(200).json({ collection: config.MONGO_COL_MAZES, 'maze-count': count });
     })
-        .catch(err => {
+        .catch((err) => {
         res.status(500).json({ status: '500', message: err.message });
     });
 });
@@ -66,7 +66,7 @@ let getMazeCount = (req, res) => __awaiter(this, void 0, void 0, function* () {
 let getMazes = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     let curMazes = yield mongo.getAllDocuments(config.MONGO_COL_MAZES);
-    res.status(200).json(yield curMazes.toArray().catch(err => {
+    res.status(200).json(yield curMazes.toArray().catch((err) => {
         res.status(500).json({ status: '500', message: err.message });
     }));
 });
@@ -80,7 +80,7 @@ let getMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     yield mongo
         .getDocument(config.MONGO_COL_MAZES, req.params.id)
-        .then(doc => {
+        .then((doc) => {
         if (doc) {
             let maze = new Maze_1.default(doc);
             log.trace(__filename, req.url, `Maze ${maze.Id} found and returned.`);
@@ -90,7 +90,7 @@ let getMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
             res.status(404).json({ status: '404', message: 'Maze not found.' });
         }
     })
-        .catch(err => {
+        .catch((err) => {
         log.error(__filename, `Route -> [${req.url}]`, 'Error fetching maze ->', err);
         res.status(500).json({ status: '500', message: err.message });
     });
@@ -105,7 +105,7 @@ let viewMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     yield mongo
         .getDocument(config.MONGO_COL_MAZES, req.params.id)
-        .then(doc => {
+        .then((doc) => {
         if (doc) {
             let maze = new Maze_1.default(doc);
             log.trace(__filename, req.url, `Maze ${maze.Id} found and returned.`);
@@ -115,7 +115,7 @@ let viewMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
             res.status(404).json({ status: '404', message: 'Maze not found.' });
         }
     })
-        .catch(err => {
+        .catch((err) => {
         log.error(__filename, `Route -> [${req.url}]`, 'Error fetching maze ->', err);
         res.status(500).json({ status: '500', message: err.message });
     });
@@ -153,7 +153,7 @@ let insertMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
     let maze = req.body;
     yield mongo
         .insertDocument(config.MONGO_COL_MAZES, maze)
-        .then(result => {
+        .then((result) => {
         res.status(200).json(result);
     })
         .catch((err) => {
@@ -170,13 +170,13 @@ let insertMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
  */
 let updateMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    let maze = req.body;
+    let maze = new Maze_1.default(req.body);
     let ret = yield mongo
         .updateDocument(config.MONGO_COL_MAZES, maze.Id, maze)
-        .then(result => {
+        .then((result) => {
         res.status(200).json(result);
     })
-        .catch(err => {
+        .catch((err) => {
         log.error(__filename, req.url, 'Error updating maze ->', err);
         res.status(500).json({ status: '500', message: `${err.name} - ${err.message}` });
     });
