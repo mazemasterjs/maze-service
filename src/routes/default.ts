@@ -129,7 +129,7 @@ let generateMaze = async (req: express.Request, res: express.Response) => {
         let maze: Maze = new Maze().generate(req.params.height, req.params.width, req.params.challenge, encodeURI(req.params.name), encodeURI(req.params.seed));
 
         if (req.query.html != undefined) {
-            res.status(200).render('viewMaze.ejs', { pageTitle: 'Generated Maze Preview', contentTitle: 'Maze Preview', maze: maze });
+            res.status(200).render('viewMaze.ejs', { pageTitle: 'Maze Preview', maze: maze });
         } else {
             res.status(200).json(maze);
         }
