@@ -1,13 +1,15 @@
+import fs from 'fs';
+import path from 'path';
 import express from 'express';
 import compression from 'compression';
 import bodyParser from 'body-parser';
-import {format as fmt} from 'util';
-import {Config} from '@mazemasterjs/shared-library/Config';
-import {Logger} from '@mazemasterjs/logger';
-import {defaultRouter} from './routes/default';
-import {probesRouter} from './routes/probes';
-import {MongoDBHandler} from '@mazemasterjs/shared-library/MongoDBHandler';
-import {Server} from 'http';
+import { format as fmt } from 'util';
+import { Config } from '@mazemasterjs/shared-library/Config';
+import { Logger } from '@mazemasterjs/logger';
+import { defaultRouter } from './routes/default';
+import { probesRouter } from './routes/probes';
+import { MongoDBHandler } from '@mazemasterjs/shared-library/MongoDBHandler';
+import { Server } from 'http';
 
 // load config
 const config = Config.getInstance();
@@ -15,7 +17,7 @@ const config = Config.getInstance();
 // set up logger
 const log = Logger.getInstance();
 
-// instatiate express
+// create express app
 const app = express();
 
 // prep reference for express server
@@ -31,15 +33,39 @@ async function startService() {
     launchExpress();
     log.info(__filename, 'startService()', 'Opening database connection...');
     await MongoDBHandler.getInstance()
-        .then((instance) => {
+        .then(instance => {
             mongo = instance;
             log.debug(__filename, 'startService()', 'Database connection ready.');
         })
-        .catch((err) => {
+        .catch(err => {
             log.error(__filename, 'startService()', 'Unable to connect to database.', err);
             doShutdown();
         });
 }
+
+/**
+ * Handle requests for .css files
+ */
+let getCssFile = (req: express.Request, res: express.Response) => {
+    let cssFile: string = `views/css/${req.params.file}`;
+    log.trace(__filename, req.url, 'Handling request -> ' + req.url);
+    if (fs.existsSync(cssFile)) {
+        res.setHeader('Content-Type', 'text/css');
+        res.status(200).sendFile(path.resolve(cssFile));
+    } else {
+        log.warn(__filename, `Route -> [${req.url}]`, `File [${cssFile}] not found, returning 404.`);
+        res.sendStatus(404);
+    }
+};
+
+/**
+ * Handle favicon requests
+ */
+let getFavicon = (req: express.Request, res: express.Response) => {
+    log.trace(__filename, req.url, 'Handling request -> ' + req.url);
+    res.setHeader('Content-Type', 'image/x-icon');
+    res.status(200).sendFile(path.resolve('views/images/favicon/favicon.ico'));
+};
 
 /**
  * Starts up the express server
@@ -55,7 +81,7 @@ function launchExpress() {
 
     // enable bodyParser middleware for json
     // TODO: Remove this if we aren't accepting post/put with JSON data
-    app.use(bodyParser.urlencoded({extended: true}));
+    app.use(bodyParser.urlencoded({ extended: true }));
     app.use(bodyParser.json());
 
     // set up the probes router (live/ready checks)
@@ -63,6 +89,25 @@ function launchExpress() {
 
     // set up the default route handler
     app.use('/api/maze', defaultRouter);
+
+    // handle general css file requests
+    app.get('/css/:file', getCssFile);
+
+    // handle general image file requests
+    app.get('/css/:file', getCssFile);
+
+    // handle favicon requests
+    app.get('/favicon.ico', getFavicon);
+
+    // catch-all for unhandled requests
+    app.get('/*', (req, res) => {
+        log.debug(__filename, req.url, 'Invalid Route Requested -> ' + req.url);
+
+        res.status(400).json({
+            status: '400',
+            message: fmt('Invalid request - route not handled.')
+        });
+    });
 
     // and start the httpServer - starts the service
     httpServer = app.listen(config.HTTP_PORT, () => {
