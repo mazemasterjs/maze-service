@@ -12,6 +12,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
 const util_1 = require("util");
 const logger_1 = require("@mazemasterjs/logger");
 const Config_1 = __importDefault(require("@mazemasterjs/shared-library/Config"));
@@ -217,14 +219,27 @@ let getServiceDoc = (req, res) => {
     }
 };
 /**
- * Responds with an HTML-rendered version of the service document
- *
- * @param req
- * @param res
+ * Handle requests for .css files
  */
-let renderHelp = (req, res) => {
-    log.trace(__filename, `Route -> [${req.url}]`, 'Handling request.');
-    res.render('help.ejs', { svcDoc: config.SERVICE_DOC });
+let getCssFile = (req, res) => {
+    let cssFile = `views/css/${req.params.file}`;
+    log.trace(__filename, req.url, 'Handling request -> ' + req.url);
+    if (fs_1.default.existsSync(cssFile)) {
+        res.setHeader('Content-Type', 'text/css');
+        res.status(200).sendFile(path_1.default.resolve(cssFile));
+    }
+    else {
+        log.warn(__filename, `Route -> [${req.url}]`, `File [${cssFile}] not found, returning 404.`);
+        res.sendStatus(404);
+    }
+};
+/**
+ * Handle favicon requests
+ */
+let getFavicon = (req, res) => {
+    log.trace(__filename, req.url, 'Handling request -> ' + req.url);
+    res.setHeader('Content-Type', 'image/x-icon');
+    res.status(200).sendFile(path_1.default.resolve('views/images/favicon/favicon.ico'));
 };
 /**
  * Handles undefined routes

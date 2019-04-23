@@ -1,5 +1,6 @@
 import express from 'express';
-import {Cursor} from 'mongodb';
+import fs from 'fs';
+import path from 'path';
 import {format as fmt} from 'util';
 import {Logger} from '@mazemasterjs/logger';
 import Config from '@mazemasterjs/shared-library/Config';
@@ -216,14 +217,27 @@ let getServiceDoc = (req: express.Request, res: express.Response) => {
 };
 
 /**
- * Responds with an HTML-rendered version of the service document
- *
- * @param req
- * @param res
+ * Handle requests for .css files
  */
-let renderHelp = (req: express.Request, res: express.Response) => {
-    log.trace(__filename, `Route -> [${req.url}]`, 'Handling request.');
-    res.render('help.ejs', {svcDoc: config.SERVICE_DOC});
+let getCssFile = (req: express.Request, res: express.Response) => {
+    let cssFile: string = `views/css/${req.params.file}`;
+    log.trace(__filename, req.url, 'Handling request -> ' + req.url);
+    if (fs.existsSync(cssFile)) {
+        res.setHeader('Content-Type', 'text/css');
+        res.status(200).sendFile(path.resolve(cssFile));
+    } else {
+        log.warn(__filename, `Route -> [${req.url}]`, `File [${cssFile}] not found, returning 404.`);
+        res.sendStatus(404);
+    }
+};
+
+/**
+ * Handle favicon requests
+ */
+let getFavicon = (req: express.Request, res: express.Response) => {
+    log.trace(__filename, req.url, 'Handling request -> ' + req.url);
+    res.setHeader('Content-Type', 'image/x-icon');
+    res.status(200).sendFile(path.resolve('views/images/favicon/favicon.ico'));
 };
 
 /**
