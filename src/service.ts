@@ -6,10 +6,8 @@ import {Config} from '@mazemasterjs/shared-library/Config';
 import {Logger} from '@mazemasterjs/logger';
 import {defaultRouter} from './routes/default';
 import {probesRouter} from './routes/probes';
-import {genRouter} from './routes/generate';
 import {MongoDBHandler} from '@mazemasterjs/shared-library/MongoDBHandler';
 import {Server} from 'http';
-import expressValidator from 'express-validator';
 
 // load config
 const config = Config.getInstance();
@@ -51,9 +49,6 @@ function launchExpress() {
 
     // enable http compression middleware
     app.use(compression());
-
-    // enable validation / sanitation middleware
-    app.use(expressValidator());
 
     // enable ejs view rendering engine
     app.set('view engine', 'ejs');

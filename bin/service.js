@@ -20,7 +20,6 @@ const logger_1 = require("@mazemasterjs/logger");
 const default_1 = require("./routes/default");
 const probes_1 = require("./routes/probes");
 const MongoDBHandler_1 = require("@mazemasterjs/shared-library/MongoDBHandler");
-const express_validator_1 = __importDefault(require("express-validator"));
 // load config
 const config = Config_1.Config.getInstance();
 // set up logger
@@ -56,8 +55,6 @@ function launchExpress() {
     log.debug(__filename, 'launchExpress()', 'Configuring express HTTPServer...');
     // enable http compression middleware
     app.use(compression_1.default());
-    // enable validation / sanitation middleware
-    app.use(express_validator_1.default());
     // enable ejs view rendering engine
     app.set('view engine', 'ejs');
     // enable bodyParser middleware for json

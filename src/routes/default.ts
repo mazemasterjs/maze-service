@@ -8,7 +8,6 @@ import Config from '@mazemasterjs/shared-library/Config';
 import Service from '@mazemasterjs/shared-library/Service';
 import Maze from '@mazemasterjs/shared-library/Maze';
 import MongoDBHandler from '@mazemasterjs/shared-library/MongoDBHandler';
-import {check, validationResult} from 'express-validator/check';
 
 export const defaultRouter = express.Router();
 
@@ -121,24 +120,35 @@ let viewMaze = async (req: express.Request, res: express.Response) => {
 };
 
 /**
- * Generate a maze from the provided values and insert it into the database
+ * Generate json representation of a maze from the provided values and insert it into the database
  * Note: Input validation is built into Maze.Generate()
  * @param req
  * @param res
  */
 let generateMaze = async (req: express.Request, res: express.Response) => {
     log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    let height: number = parseInt(req.params.height);
-    let width: number = parseInt(req.params.width);
-    let challenge: number = parseInt(req.params.challenge);
-    let name: string = req.params.name;
-    let seed: string = req.params.seed;
-
     try {
-        let maze: Maze = new Maze().generate(height, width, challenge, name, seed);
+        let maze: Maze = new Maze().generate(req.params.height, req.params.width, req.params.challenge, encodeURI(req.params.name), encodeURI(req.params.seed));
         res.status(200).json(maze);
     } catch (err) {
-        log.error(__filename, req.url, 'Error inserting maze ->', err);
+        log.error(__filename, req.url, 'Error generating maze ->', err);
+        res.status(400).json({status: '400', message: `${err.name} - ${err.message}`});
+    }
+};
+
+/**
+ * Generate html representation of a maze from the provided values and insert it into the database
+ * Note: Input validation is built into Maze.Generate()
+ * @param req
+ * @param res
+ */
+let generateMazeHtml = async (req: express.Request, res: express.Response) => {
+    log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    try {
+        let maze: Maze = new Maze().generate(req.params.height, req.params.width, req.params.challenge, encodeURI(req.params.name), encodeURI(req.params.seed));
+        res.status(200).render('viewMaze.ejs', {maze: maze});
+    } catch (err) {
+        log.error(__filename, req.url, 'Error generating maze ->', err);
         res.status(400).json({status: '400', message: `${err.name} - ${err.message}`});
     }
 };
@@ -301,7 +311,7 @@ function getProtocolHostPort(req: express.Request): string {
     return fmt('%s://%s', req.protocol, req.get('host'));
 }
 
-// Route -> Handler mappings
+// Route -> http.get mappings
 defaultRouter.get('/get/count', getMazeCount);
 defaultRouter.get('/get/all', getMazes);
 defaultRouter.get('/get/:id', getMaze);
@@ -313,37 +323,15 @@ defaultRouter.get('/help', getServiceDoc);
 defaultRouter.get('/help.json', getServiceDoc);
 defaultRouter.get('/help.html', renderHelp);
 defaultRouter.get('/service', getServiceDoc);
-defaultRouter.get(
-    '/generate/:height/:width/:challenge/:name/:seed',
-    [
-        check('height')
-            .isInt({min: config.MAZE_MIN_HEIGHT, max: config.MAZE_MAX_HEIGHT})
-            .trim()
-            .escape(),
-        check('width')
-            .isInt({min: config.MAZE_MIN_WIDTH, max: config.MAZE_MAX_WIDTH})
-            .trim()
-            .escape(),
-        check('challenge')
-            .isInt({min: 0, max: 10})
-            .trim()
-            .escape(),
-        check('name')
-            .isLength({min: 3, max: 32})
-            .trim()
-            .escape(),
-        check('seed')
-            .isLength({min: 3, max: 32})
-            .trim()
-            .escape()
-    ],
-    generateMaze
-);
+defaultRouter.get('/generate/:height/:width/:challenge/:name/:seed', generateMaze);
+defaultRouter.get('/generate.html/:height/:width/:challenge/:name/:seed', generateMazeHtml);
 
+// Route - http.put mappings
 defaultRouter.put('/insert', insertMaze);
 defaultRouter.put('/update', updateMaze);
 
 // capture all unhandled routes
 defaultRouter.get('/*', unhandledRoute);
 
+// expose router as module
 export default defaultRouter;

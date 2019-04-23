@@ -1,6 +1,6 @@
 <body>
     <% include head %>
-    <h1><%= maze.Name %> (seed: <%= maze.Seed %> )</h1>
+    <h1><%= decodeURI(maze.Name) %> (seed: <%= maze.Seed %> )</h1>
     <hr />
     <pre><%= maze.textRender %></pre>
 </body>
