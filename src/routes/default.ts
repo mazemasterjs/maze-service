@@ -1,6 +1,6 @@
 import express from 'express';
 import {Cursor} from 'mongodb';
-import {format as fmt, isUndefined, isNull} from 'util';
+import {format as fmt} from 'util';
 import {Logger} from '@mazemasterjs/logger';
 import Config from '@mazemasterjs/shared-library/Config';
 import Service from '@mazemasterjs/shared-library/Service';
