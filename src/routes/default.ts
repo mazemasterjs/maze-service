@@ -147,7 +147,7 @@ let generateMaze = async (req: express.Request, res: express.Response) => {
  * @param res
  */
 let insertMaze = async (req: express.Request, res: express.Response) => {
-    log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     let maze = req.body;
 
     await mongo

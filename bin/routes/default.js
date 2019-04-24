@@ -154,7 +154,7 @@ let generateMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
  * @param res
  */
 let insertMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
-    log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     let maze = req.body;
     yield mongo
         .insertDocument(config.MONGO_COL_MAZES, maze)
