@@ -12,8 +12,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const fs_1 = __importDefault(require("fs"));
-const path_1 = __importDefault(require("path"));
 const util_1 = require("util");
 const logger_1 = require("@mazemasterjs/logger");
 const Config_1 = __importDefault(require("@mazemasterjs/shared-library/Config"));
@@ -163,7 +161,7 @@ let insertMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
     })
         .catch((err) => {
         log.error(__filename, req.url, 'Error inserting maze ->', err);
-        res.status(500).json({ status: '400', message: `${err.name} - ${err.message}` });
+        res.status(400).json({ status: '400', message: `${err.name} - ${err.message}` });
     });
 });
 /**
@@ -212,34 +210,11 @@ let deleteMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
 let getServiceDoc = (req, res) => {
     log.trace(__filename, `Route -> [${req.url}]`, 'Handling request.');
     if (req.query.html != undefined) {
-        res.render('help.ejs', { svcDoc: config.SERVICE_DOC });
+        res.render('help.ejs', { pageTitle: 'Service Documentation', svcDoc: config.SERVICE_DOC });
     }
     else {
         res.status(200).json(config.SERVICE_DOC);
     }
-};
-/**
- * Handle requests for .css files
- */
-let getCssFile = (req, res) => {
-    let cssFile = `views/css/${req.params.file}`;
-    log.trace(__filename, req.url, 'Handling request -> ' + req.url);
-    if (fs_1.default.existsSync(cssFile)) {
-        res.setHeader('Content-Type', 'text/css');
-        res.status(200).sendFile(path_1.default.resolve(cssFile));
-    }
-    else {
-        log.warn(__filename, `Route -> [${req.url}]`, `File [${cssFile}] not found, returning 404.`);
-        res.sendStatus(404);
-    }
-};
-/**
- * Handle favicon requests
- */
-let getFavicon = (req, res) => {
-    log.trace(__filename, req.url, 'Handling request -> ' + req.url);
-    res.setHeader('Content-Type', 'image/x-icon');
-    res.status(200).sendFile(path_1.default.resolve('views/images/favicon/favicon.ico'));
 };
 /**
  * Handles undefined routes
@@ -285,8 +260,6 @@ exports.defaultRouter.get('/get/all', getMazes);
 exports.defaultRouter.get('/get/:id', getMaze);
 exports.defaultRouter.get('/view/:id', viewMaze);
 exports.defaultRouter.get('/delete/:id', deleteMaze);
-exports.defaultRouter.get('/help', getServiceDoc);
-exports.defaultRouter.get('/help.json', getServiceDoc);
 exports.defaultRouter.get('/service', getServiceDoc);
 exports.defaultRouter.get('/generate/:height/:width/:challenge/:name/:seed', generateMaze);
 // Route - http.put mappings

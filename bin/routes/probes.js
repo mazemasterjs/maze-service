@@ -9,10 +9,10 @@ exports.probesRouter = express_1.default.Router();
 const Config_1 = __importDefault(require("@mazemasterjs/shared-library/Config"));
 const log = logger_1.Logger.getInstance();
 const config = Config_1.default.getInstance();
-const RES_LIVE_TRUE = { 'probe-type': 'liveness', status: 'alive' };
-const RES_LIVE_WAIT = { 'probe-type': 'liveness', status: 'awaiting-ready' };
-const RES_READY_TRUE = { 'probe-type': 'readiness', status: 'ready' };
-const RES_READY_WAIT = { 'probe-type': 'readiness', status: 'not-ready' };
+const RES_LIVE_TRUE = { probeType: 'liveness', status: 'alive' };
+const RES_LIVE_WAIT = { probeType: 'liveness', status: 'awaiting-ready' };
+const RES_READY_TRUE = { probeType: 'readiness', status: 'ready' };
+const RES_READY_WAIT = { probeType: 'readiness', status: 'not-ready' };
 /**
  * Liveness probe for container/cloud hosted service monitoring
  */
