@@ -75,7 +75,7 @@ function launchExpress() {
     log.debug(__filename, 'launchExpress()', 'Configuring express HTTPServer...');
 
     // allow cross-origin-resource-sharing
-    app.use(cors);
+    app.use(cors());
 
     // enable http compression middleware
     app.use(compression());
@@ -97,6 +97,8 @@ function launchExpress() {
                 log.error(__filename, 'app.bodyParser.json()', 'Error encountered while parsing json body.', err);
                 res.status(500).json({status: '400', message: `Unable to parse JSON Body : ${err.name} - ${err.message}`});
                 return;
+            } else {
+                log.debug(__filename, 'launchExpress()', 'bodyParser configured.');
             }
             next();
         });

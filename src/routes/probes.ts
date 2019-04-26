@@ -1,7 +1,8 @@
 import express from 'express';
 import {Logger} from '@mazemasterjs/logger';
-export const probesRouter = express.Router();
 import Config from '@mazemasterjs/shared-library/Config';
+
+export const probesRouter = express.Router();
 
 const log: Logger = Logger.getInstance();
 const config: Config = Config.getInstance();

@@ -80,7 +80,7 @@ let getFavicon = (req, res) => {
 function launchExpress() {
     log.debug(__filename, 'launchExpress()', 'Configuring express HTTPServer...');
     // allow cross-origin-resource-sharing
-    app.use(cors_1.default);
+    app.use(cors_1.default());
     // enable http compression middleware
     app.use(compression_1.default());
     // enable ejs view rendering engine
@@ -98,6 +98,9 @@ function launchExpress() {
                 log.error(__filename, 'app.bodyParser.json()', 'Error encountered while parsing json body.', err);
                 res.status(500).json({ status: '400', message: `Unable to parse JSON Body : ${err.name} - ${err.message}` });
                 return;
+            }
+            else {
+                log.debug(__filename, 'launchExpress()', 'bodyParser configured.');
             }
             next();
         });
