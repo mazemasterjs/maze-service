@@ -22,6 +22,7 @@ const logger_1 = require("@mazemasterjs/logger");
 const default_1 = require("./routes/default");
 const probes_1 = require("./routes/probes");
 const MongoDBHandler_1 = require("@mazemasterjs/shared-library/MongoDBHandler");
+const cors_1 = __importDefault(require("cors"));
 // load config
 const config = Config_1.Config.getInstance();
 // set up logger
@@ -78,6 +79,8 @@ let getFavicon = (req, res) => {
  */
 function launchExpress() {
     log.debug(__filename, 'launchExpress()', 'Configuring express HTTPServer...');
+    // allow cross-origin-resource-sharing
+    app.use(cors_1.default);
     // enable http compression middleware
     app.use(compression_1.default());
     // enable ejs view rendering engine

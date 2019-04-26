@@ -10,6 +10,7 @@ import {defaultRouter} from './routes/default';
 import {probesRouter} from './routes/probes';
 import {MongoDBHandler} from '@mazemasterjs/shared-library/MongoDBHandler';
 import {Server} from 'http';
+import cors from 'cors';
 
 // load config
 const config = Config.getInstance();
@@ -72,6 +73,9 @@ let getFavicon = (req: express.Request, res: express.Response) => {
  */
 function launchExpress() {
     log.debug(__filename, 'launchExpress()', 'Configuring express HTTPServer...');
+
+    // allow cross-origin-resource-sharing
+    app.use(cors);
 
     // enable http compression middleware
     app.use(compression());
