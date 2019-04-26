@@ -22,6 +22,7 @@ const logger_1 = require("@mazemasterjs/logger");
 const default_1 = require("./routes/default");
 const probes_1 = require("./routes/probes");
 const MongoDBHandler_1 = require("@mazemasterjs/shared-library/MongoDBHandler");
+const cors_1 = __importDefault(require("cors"));
 // load config
 const config = Config_1.Config.getInstance();
 // set up logger
@@ -40,11 +41,11 @@ function startService() {
         launchExpress();
         log.info(__filename, 'startService()', 'Opening database connection...');
         yield MongoDBHandler_1.MongoDBHandler.getInstance()
-            .then(instance => {
+            .then((instance) => {
             mongo = instance;
             log.debug(__filename, 'startService()', 'Database connection ready.');
         })
-            .catch(err => {
+            .catch((err) => {
             log.error(__filename, 'startService()', 'Unable to connect to database.', err);
             doShutdown();
         });
@@ -78,6 +79,8 @@ let getFavicon = (req, res) => {
  */
 function launchExpress() {
     log.debug(__filename, 'launchExpress()', 'Configuring express HTTPServer...');
+    // allow cross-origin-resource-sharing
+    app.use(cors_1.default);
     // enable http compression middleware
     app.use(compression_1.default());
     // enable ejs view rendering engine
@@ -85,7 +88,20 @@ function launchExpress() {
     // enable bodyParser middleware for json
     // TODO: Remove this if we aren't accepting post/put with JSON data
     app.use(body_parser_1.default.urlencoded({ extended: true }));
-    app.use(body_parser_1.default.json());
+    // have to do a little dance around bodyParser.json() to verify request body so that
+    // errors can be captured, logged, and responded to cleanly
+    app.use((req, res, next) => {
+        body_parser_1.default.json({
+            verify: addReqBody
+        })(req, res, (err) => {
+            if (err) {
+                log.error(__filename, 'app.bodyParser.json()', 'Error encountered while parsing json body.', err);
+                res.status(500).json({ status: '400', message: `Unable to parse JSON Body : ${err.name} - ${err.message}` });
+                return;
+            }
+            next();
+        });
+    });
     // set up the probes router (live/ready checks)
     app.use('/api/maze/probes', probes_1.probesRouter);
     // set up the default route handler
@@ -110,6 +126,17 @@ function launchExpress() {
         // routes to be mapped.
         log.info(__filename, 'launchExpress()', util_1.format('MazeMasterJS/%s -> Service is now LIVE (but not ready) and listening on port %d.', config.APP_NAME, config.HTTP_PORT));
     });
+}
+/**
+ * Called by bodyParser.json() to allow handling of JSON errors in submitted
+ * put/post document bodies.
+ *
+ * @param req
+ * @param res
+ * @param buf
+ */
+function addReqBody(req, res, buf) {
+    req.body = buf.toString();
 }
 /**
  * Watch for SIGINT (process interrupt signal) and trigger shutdown

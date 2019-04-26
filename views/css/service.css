@@ -4,9 +4,17 @@ footer {
 }
 
 .ep-block {
-    border: solid 1px red;
+    line-height: 2em;
+}
+
+.ep-arguments {
+    line-height: 2em;
 }
 
 .ep-title {
     font-weight: bold;
+}
+
+.arg-name {
+    text-transform: uppercase;
 }

@@ -3,11 +3,19 @@
     "baseUrl": "/api/maze/",
     "endpoints": [
         {
-            "name": "help",
-            "description": "Basic, html-based documentation of the API built from this api.json file.",
+            "name": "service",
+            "description": "This document which gleefully describes itself via json.",
+            "method": "get",
+            "contentType": "application/json",
+            "url": "service/",
+            "arguments": []
+        },
+        {
+            "name": "service?html",
+            "description": "This document which gleefully describes itself in html.",
             "method": "get",
             "contentType": "text/html",
-            "url": "help/",
+            "url": "service/",
             "arguments": []
         },
         {
@@ -35,12 +43,12 @@
                 {
                     "name": "name",
                     "description": "The name of the new maze. This is a string value.",
-                    "type": "String"
+                    "type": "string"
                 },
                 {
                     "name": "seed",
                     "description": "The seed value to use when generating this maze. This is a string value.",
-                    "type": "String"
+                    "type": "string"
                 }
             ]
         },

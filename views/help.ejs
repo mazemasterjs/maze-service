@@ -3,7 +3,17 @@
     <h1><%= svcDoc.Name %> - service documentation</h1>
     <hr />
     <% svcDoc.Endpoints.forEach(function(ep) { %>
-    <div class="ep-block"><span class="ep-title"><%= ep.Name %></span> - <%= ep.Description %></div>
-
-    <% }); %>
+        <div class="ep-block"><span class="ep-title">[[ <%= ep.Name %> ]] </span><br/>
+            <%= svcDoc.baseUrl + ep.Url %> - <%= ep.Description %>
+            <% if (ep.Arguments.length > 0) { %>
+                <div class="ep-arguments">
+                    <ol>
+                        <% ep.Arguments.forEach(function(ar) { %>
+                            <li><span class='arg-name'><%= ar.Name %></span> [<%= ar.Type %>] - <%= ar.Description %></li>
+                        <% }); %>
+                    </ol>
+                </div>
+            <% } %>
+        </div>
+    <% }); %></li>
 </body>

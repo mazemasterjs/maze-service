@@ -6,10 +6,10 @@ import Config from '@mazemasterjs/shared-library/Config';
 const log: Logger = Logger.getInstance();
 const config: Config = Config.getInstance();
 
-const RES_LIVE_TRUE: object = {'probe-type': 'liveness', status: 'alive'};
-const RES_LIVE_WAIT: object = {'probe-type': 'liveness', status: 'awaiting-ready'};
-const RES_READY_TRUE: object = {'probe-type': 'readiness', status: 'ready'};
-const RES_READY_WAIT: object = {'probe-type': 'readiness', status: 'not-ready'};
+const RES_LIVE_TRUE: object = {probeType: 'liveness', status: 'alive'};
+const RES_LIVE_WAIT: object = {probeType: 'liveness', status: 'awaiting-ready'};
+const RES_READY_TRUE: object = {probeType: 'readiness', status: 'ready'};
+const RES_READY_WAIT: object = {probeType: 'readiness', status: 'not-ready'};
 
 /**
  * Liveness probe for container/cloud hosted service monitoring

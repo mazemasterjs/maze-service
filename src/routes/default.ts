@@ -147,7 +147,7 @@ let generateMaze = async (req: express.Request, res: express.Response) => {
  * @param res
  */
 let insertMaze = async (req: express.Request, res: express.Response) => {
-    log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     let maze = req.body;
 
     await mongo
@@ -157,7 +157,7 @@ let insertMaze = async (req: express.Request, res: express.Response) => {
         })
         .catch((err: Error) => {
             log.error(__filename, req.url, 'Error inserting maze ->', err);
-            res.status(500).json({status: '400', message: `${err.name} - ${err.message}`});
+            res.status(400).json({status: '400', message: `${err.name} - ${err.message}`});
         });
 };
 
@@ -210,34 +210,10 @@ let deleteMaze = async (req: express.Request, res: express.Response) => {
 let getServiceDoc = (req: express.Request, res: express.Response) => {
     log.trace(__filename, `Route -> [${req.url}]`, 'Handling request.');
     if (req.query.html != undefined) {
-        res.render('help.ejs', {svcDoc: config.SERVICE_DOC});
+        res.render('help.ejs', {pageTitle: 'Service Documentation', svcDoc: config.SERVICE_DOC});
     } else {
         res.status(200).json(config.SERVICE_DOC);
     }
-};
-
-/**
- * Handle requests for .css files
- */
-let getCssFile = (req: express.Request, res: express.Response) => {
-    let cssFile: string = `views/css/${req.params.file}`;
-    log.trace(__filename, req.url, 'Handling request -> ' + req.url);
-    if (fs.existsSync(cssFile)) {
-        res.setHeader('Content-Type', 'text/css');
-        res.status(200).sendFile(path.resolve(cssFile));
-    } else {
-        log.warn(__filename, `Route -> [${req.url}]`, `File [${cssFile}] not found, returning 404.`);
-        res.sendStatus(404);
-    }
-};
-
-/**
- * Handle favicon requests
- */
-let getFavicon = (req: express.Request, res: express.Response) => {
-    log.trace(__filename, req.url, 'Handling request -> ' + req.url);
-    res.setHeader('Content-Type', 'image/x-icon');
-    res.status(200).sendFile(path.resolve('views/images/favicon/favicon.ico'));
 };
 
 /**
@@ -288,8 +264,6 @@ defaultRouter.get('/get/all', getMazes);
 defaultRouter.get('/get/:id', getMaze);
 defaultRouter.get('/view/:id', viewMaze);
 defaultRouter.get('/delete/:id', deleteMaze);
-defaultRouter.get('/help', getServiceDoc);
-defaultRouter.get('/help.json', getServiceDoc);
 defaultRouter.get('/service', getServiceDoc);
 defaultRouter.get('/generate/:height/:width/:challenge/:name/:seed', generateMaze);
 
