@@ -16,26 +16,26 @@ const util_1 = require("util");
 const logger_1 = require("@mazemasterjs/logger");
 const Config_1 = __importDefault(require("@mazemasterjs/shared-library/Config"));
 const Maze_1 = __importDefault(require("@mazemasterjs/shared-library/Maze"));
-const MongoDBHandler_1 = __importDefault(require("@mazemasterjs/shared-library/MongoDBHandler"));
+const DatabaseManager_1 = __importDefault(require("@mazemasterjs/database-manager/DatabaseManager"));
 exports.defaultRouter = express_1.default.Router();
 const log = logger_1.Logger.getInstance();
 const config = Config_1.default.getInstance();
 const ROUTE_PATH = '/api/maze';
-let mongo;
+let dbMan;
 /**
- * This just assigns mongo the instance of MongoDBHandler.  We shouldn't be
+ * This just assigns mongo the instance of DatabaseManager.  We shouldn't be
  * able to get here without a database connection and existing instance, but
  * we'll do some logging / error checking anyway.
  */
-MongoDBHandler_1.default.getInstance()
+DatabaseManager_1.default.getInstance()
     .then((instance) => {
-    mongo = instance;
+    dbMan = instance;
     // enable the "readiness" probe that tells OpenShift that it can send traffic to this service's pod
     config.READY_TO_ROCK = true;
-    log.info(__filename, 'MongoDBHandler.getInstance()', 'Service is now LIVE, READY, and taking requests.');
+    log.info(__filename, 'DatabaseManager.getInstance()', 'Service is now LIVE, READY, and taking requests.');
 })
     .catch((err) => {
-    log.error(__filename, 'MongoDBHandler.getInstance()', 'Error getting MongoDBHandler instance ->', err);
+    log.error(__filename, 'DatabaseManager.getInstance()', 'Error getting DatabaseManager instance ->', err);
 });
 /**
  * Response with json maze-count value showing the count of all maze documents found
@@ -46,7 +46,7 @@ MongoDBHandler_1.default.getInstance()
  */
 let getMazeCount = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    yield mongo
+    yield dbMan
         .countDocuments(config.MONGO_COL_MAZES)
         .then((count) => {
         log.debug(__filename, 'getMazeCount()', 'Maze Count=' + count);
@@ -66,7 +66,7 @@ let getMazeCount = (req, res) => __awaiter(this, void 0, void 0, function* () {
 let getMazes = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     try {
-        let mazes = yield mongo.getAllDocuments(config.MONGO_COL_MAZES).toArray();
+        let mazes = yield dbMan.getAllDocuments(config.MONGO_COL_MAZES).toArray();
         res.status(200).json(mazes);
     }
     catch (err) {
@@ -81,38 +81,13 @@ let getMazes = (req, res) => __awaiter(this, void 0, void 0, function* () {
  */
 let getMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    yield mongo
+    yield dbMan
         .getDocument(config.MONGO_COL_MAZES, req.params.id)
         .then((doc) => {
         if (doc) {
             let maze = new Maze_1.default(doc);
             log.trace(__filename, req.url, `Maze ${maze.Id} found and returned.`);
             res.status(200).json(maze);
-        }
-        else {
-            res.status(404).json({ status: '404', message: 'Maze not found.' });
-        }
-    })
-        .catch((err) => {
-        log.error(__filename, `Route -> [${req.url}]`, 'Error fetching maze ->', err);
-        res.status(500).json({ status: '500', message: err.message });
-    });
-});
-/**
- * Gets and returns an html document to display the maze with the specified Maze.Id.
- *
- * @param req - express.Request
- * @param res - express.Response
- */
-let viewMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
-    log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    yield mongo
-        .getDocument(config.MONGO_COL_MAZES, req.params.id)
-        .then((doc) => {
-        if (doc) {
-            let maze = new Maze_1.default(doc);
-            log.trace(__filename, req.url, `Maze ${maze.Id} found and returned.`);
-            res.status(200).render('viewMaze.ejs', { pageTitle: 'Maze Viewer', maze: maze });
         }
         else {
             res.status(404).json({ status: '404', message: 'Maze not found.' });
@@ -133,12 +108,7 @@ let generateMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     try {
         let maze = new Maze_1.default().generate(req.params.height, req.params.width, req.params.challenge, encodeURI(req.params.name), encodeURI(req.params.seed));
-        if (req.query.html != undefined) {
-            res.status(200).render('viewMaze.ejs', { pageTitle: 'Maze Preview', maze: maze });
-        }
-        else {
-            res.status(200).json(maze);
-        }
+        res.status(200).json(maze);
     }
     catch (err) {
         log.error(__filename, req.url, 'Error generating maze ->', err);
@@ -154,7 +124,7 @@ let generateMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
 let insertMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     let maze = req.body;
-    yield mongo
+    yield dbMan
         .insertDocument(config.MONGO_COL_MAZES, maze)
         .then((result) => {
         res.status(200).json(result);
@@ -174,7 +144,7 @@ let insertMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
 let updateMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     let maze = new Maze_1.default(req.body);
-    yield mongo
+    yield dbMan
         .updateDocument(config.MONGO_COL_MAZES, maze.Id, maze)
         .then((result) => {
         res.status(200).json(result);
@@ -192,7 +162,7 @@ let updateMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
  */
 let deleteMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    let ret = yield mongo.deleteDocument(config.MONGO_COL_MAZES, req.params.id);
+    let ret = yield dbMan.deleteDocument(config.MONGO_COL_MAZES, req.params.id);
     // check for errors and respond correctly
     if (ret instanceof Error) {
         res.status(500).json({ error: ret.name, message: ret.message });
@@ -209,12 +179,7 @@ let deleteMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
  */
 let getServiceDoc = (req, res) => {
     log.trace(__filename, `Route -> [${req.url}]`, 'Handling request.');
-    if (req.query.html != undefined) {
-        res.render('help.ejs', { pageTitle: 'Service Documentation', svcDoc: config.SERVICE_DOC });
-    }
-    else {
-        res.status(200).json(config.SERVICE_DOC);
-    }
+    res.status(200).json(config.SERVICE_DOC);
 };
 /**
  * Handles undefined routes
@@ -258,7 +223,6 @@ function getProtocolHostPort(req) {
 exports.defaultRouter.get('/get/count', getMazeCount);
 exports.defaultRouter.get('/get/all', getMazes);
 exports.defaultRouter.get('/get/:id', getMaze);
-exports.defaultRouter.get('/view/:id', viewMaze);
 exports.defaultRouter.get('/delete/:id', deleteMaze);
 exports.defaultRouter.get('/service', getServiceDoc);
 exports.defaultRouter.get('/generate/:height/:width/:challenge/:name/:seed', generateMaze);

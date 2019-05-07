@@ -21,7 +21,7 @@ const Config_1 = require("@mazemasterjs/shared-library/Config");
 const logger_1 = require("@mazemasterjs/logger");
 const default_1 = require("./routes/default");
 const probes_1 = require("./routes/probes");
-const MongoDBHandler_1 = require("@mazemasterjs/shared-library/MongoDBHandler");
+const DatabaseManager_1 = __importDefault(require("@mazemasterjs/database-manager/DatabaseManager"));
 const cors_1 = __importDefault(require("cors"));
 // load config
 const config = Config_1.Config.getInstance();
@@ -32,7 +32,7 @@ const app = express_1.default();
 // prep reference for express server
 let httpServer;
 // prep reference for
-let mongo;
+let dbMan;
 /**
  * APPLICATION ENTRY POINT
  */
@@ -40,9 +40,9 @@ function startService() {
     return __awaiter(this, void 0, void 0, function* () {
         launchExpress();
         log.info(__filename, 'startService()', 'Opening database connection...');
-        yield MongoDBHandler_1.MongoDBHandler.getInstance()
+        yield DatabaseManager_1.default.getInstance()
             .then((instance) => {
-            mongo = instance;
+            dbMan = instance;
             log.debug(__filename, 'startService()', 'Database connection ready.');
         })
             .catch((err) => {
@@ -100,7 +100,7 @@ function launchExpress() {
                 return;
             }
             else {
-                log.debug(__filename, 'launchExpress()', 'bodyParser configured.');
+                log.trace(__filename, `bodyParser(${req.url}, res, next).json`, 'bodyParser.json() completed successfully.');
             }
             next();
         });
@@ -162,9 +162,9 @@ process.on('SIGTERM', function onSigTerm() {
  */
 function doShutdown() {
     log.force(__filename, 'doShutDown()', 'Service shutdown commenced.');
-    if (mongo) {
+    if (dbMan) {
         log.force(__filename, 'doShutDown()', 'Closing DB connections...');
-        mongo.disconnect();
+        dbMan.disconnect();
     }
     if (httpServer) {
         log.force(__filename, 'doShutDown()', 'Shutting down HTTPServer...');
