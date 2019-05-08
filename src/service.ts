@@ -8,7 +8,7 @@ import {Config} from '@mazemasterjs/shared-library/Config';
 import {Logger} from '@mazemasterjs/logger';
 import {defaultRouter} from './routes/default';
 import {probesRouter} from './routes/probes';
-import {MongoDBHandler} from '@mazemasterjs/shared-library/MongoDBHandler';
+import DatabaseManager from '@mazemasterjs/database-manager/DatabaseManager';
 import {Server} from 'http';
 import cors from 'cors';
 
@@ -25,7 +25,7 @@ const app = express();
 let httpServer: Server;
 
 // prep reference for
-let mongo: MongoDBHandler;
+let dbMan: DatabaseManager;
 
 /**
  * APPLICATION ENTRY POINT
@@ -33,9 +33,9 @@ let mongo: MongoDBHandler;
 async function startService() {
     launchExpress();
     log.info(__filename, 'startService()', 'Opening database connection...');
-    await MongoDBHandler.getInstance()
+    await DatabaseManager.getInstance()
         .then((instance) => {
-            mongo = instance;
+            dbMan = instance;
             log.debug(__filename, 'startService()', 'Database connection ready.');
         })
         .catch((err) => {
@@ -98,7 +98,7 @@ function launchExpress() {
                 res.status(500).json({status: '400', message: `Unable to parse JSON Body : ${err.name} - ${err.message}`});
                 return;
             } else {
-                log.debug(__filename, 'launchExpress()', 'bodyParser configured.');
+                log.trace(__filename, `bodyParser(${req.url}, res, next).json`, 'bodyParser.json() completed successfully.');
             }
             next();
         });
@@ -176,9 +176,9 @@ process.on('SIGTERM', function onSigTerm() {
  */
 function doShutdown() {
     log.force(__filename, 'doShutDown()', 'Service shutdown commenced.');
-    if (mongo) {
+    if (dbMan) {
         log.force(__filename, 'doShutDown()', 'Closing DB connections...');
-        mongo.disconnect();
+        dbMan.disconnect();
     }
 
     if (httpServer) {

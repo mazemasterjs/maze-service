@@ -1,34 +1,32 @@
 import express from 'express';
-import fs from 'fs';
-import path from 'path';
 import {format as fmt} from 'util';
 import {Logger} from '@mazemasterjs/logger';
 import Config from '@mazemasterjs/shared-library/Config';
 import Service from '@mazemasterjs/shared-library/Service';
 import Maze from '@mazemasterjs/shared-library/Maze';
-import MongoDBHandler from '@mazemasterjs/shared-library/MongoDBHandler';
+import DatabaseManager from '@mazemasterjs/database-manager/DatabaseManager';
 
 export const defaultRouter = express.Router();
 
 const log: Logger = Logger.getInstance();
 const config: Config = Config.getInstance();
 const ROUTE_PATH: string = '/api/maze';
-let mongo: MongoDBHandler;
+let dbMan: DatabaseManager;
 
 /**
- * This just assigns mongo the instance of MongoDBHandler.  We shouldn't be
+ * This just assigns mongo the instance of DatabaseManager.  We shouldn't be
  * able to get here without a database connection and existing instance, but
  * we'll do some logging / error checking anyway.
  */
-MongoDBHandler.getInstance()
+DatabaseManager.getInstance()
     .then((instance) => {
-        mongo = instance;
+        dbMan = instance;
         // enable the "readiness" probe that tells OpenShift that it can send traffic to this service's pod
         config.READY_TO_ROCK = true;
-        log.info(__filename, 'MongoDBHandler.getInstance()', 'Service is now LIVE, READY, and taking requests.');
+        log.info(__filename, 'DatabaseManager.getInstance()', 'Service is now LIVE, READY, and taking requests.');
     })
     .catch((err) => {
-        log.error(__filename, 'MongoDBHandler.getInstance()', 'Error getting MongoDBHandler instance ->', err);
+        log.error(__filename, 'DatabaseManager.getInstance()', 'Error getting DatabaseManager instance ->', err);
     });
 
 /**
@@ -40,7 +38,7 @@ MongoDBHandler.getInstance()
  */
 let getMazeCount = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    await mongo
+    await dbMan
         .countDocuments(config.MONGO_COL_MAZES)
         .then((count) => {
             log.debug(__filename, 'getMazeCount()', 'Maze Count=' + count);
@@ -61,7 +59,7 @@ let getMazeCount = async (req: express.Request, res: express.Response) => {
 let getMazes = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     try {
-        let mazes = await mongo.getAllDocuments(config.MONGO_COL_MAZES).toArray();
+        let mazes = await dbMan.getAllDocuments(config.MONGO_COL_MAZES).toArray();
         res.status(200).json(mazes);
     } catch (err) {
         res.status(500).json({status: '500', message: err.message});
@@ -76,38 +74,13 @@ let getMazes = async (req: express.Request, res: express.Response) => {
  */
 let getMaze = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    await mongo
+    await dbMan
         .getDocument(config.MONGO_COL_MAZES, req.params.id)
         .then((doc) => {
             if (doc) {
                 let maze: Maze = new Maze(doc);
                 log.trace(__filename, req.url, `Maze ${maze.Id} found and returned.`);
                 res.status(200).json(maze);
-            } else {
-                res.status(404).json({status: '404', message: 'Maze not found.'});
-            }
-        })
-        .catch((err) => {
-            log.error(__filename, `Route -> [${req.url}]`, 'Error fetching maze ->', err);
-            res.status(500).json({status: '500', message: err.message});
-        });
-};
-
-/**
- * Gets and returns an html document to display the maze with the specified Maze.Id.
- *
- * @param req - express.Request
- * @param res - express.Response
- */
-let viewMaze = async (req: express.Request, res: express.Response) => {
-    log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    await mongo
-        .getDocument(config.MONGO_COL_MAZES, req.params.id)
-        .then((doc) => {
-            if (doc) {
-                let maze: Maze = new Maze(doc);
-                log.trace(__filename, req.url, `Maze ${maze.Id} found and returned.`);
-                res.status(200).render('viewMaze.ejs', {pageTitle: 'Maze Viewer', maze: maze});
             } else {
                 res.status(404).json({status: '404', message: 'Maze not found.'});
             }
@@ -128,12 +101,7 @@ let generateMaze = async (req: express.Request, res: express.Response) => {
     log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     try {
         let maze: Maze = new Maze().generate(req.params.height, req.params.width, req.params.challenge, encodeURI(req.params.name), encodeURI(req.params.seed));
-
-        if (req.query.html != undefined) {
-            res.status(200).render('viewMaze.ejs', {pageTitle: 'Maze Preview', maze: maze});
-        } else {
-            res.status(200).json(maze);
-        }
+        res.status(200).json(maze);
     } catch (err) {
         log.error(__filename, req.url, 'Error generating maze ->', err);
         res.status(400).json({status: '400', message: `${err.name} - ${err.message}`});
@@ -150,7 +118,7 @@ let insertMaze = async (req: express.Request, res: express.Response) => {
     log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     let maze = req.body;
 
-    await mongo
+    await dbMan
         .insertDocument(config.MONGO_COL_MAZES, maze)
         .then((result) => {
             res.status(200).json(result);
@@ -172,7 +140,7 @@ let updateMaze = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     let maze = new Maze(req.body);
 
-    await mongo
+    await dbMan
         .updateDocument(config.MONGO_COL_MAZES, maze.Id, maze)
         .then((result) => {
             res.status(200).json(result);
@@ -191,7 +159,7 @@ let updateMaze = async (req: express.Request, res: express.Response) => {
  */
 let deleteMaze = async (req: express.Request, res: express.Response) => {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    let ret = await mongo.deleteDocument(config.MONGO_COL_MAZES, req.params.id);
+    let ret = await dbMan.deleteDocument(config.MONGO_COL_MAZES, req.params.id);
 
     // check for errors and respond correctly
     if (ret instanceof Error) {
@@ -209,18 +177,14 @@ let deleteMaze = async (req: express.Request, res: express.Response) => {
  */
 let getServiceDoc = (req: express.Request, res: express.Response) => {
     log.trace(__filename, `Route -> [${req.url}]`, 'Handling request.');
-    if (req.query.html != undefined) {
-        res.render('help.ejs', {pageTitle: 'Service Documentation', svcDoc: config.SERVICE_DOC});
-    } else {
-        res.status(200).json(config.SERVICE_DOC);
-    }
+    res.status(200).json(config.SERVICE_DOC);
 };
 
 /**
  * Handles undefined routes
  */
 let unhandledRoute = (req: express.Request, res: express.Response) => {
-    log.warn(__filename, `Route -> [${req.url}]`, 'Unhandled route, returning 404.');
+    log.warn(__filename, `Route -> [${req.method} -> ${req.url}]`, 'Unhandled route, returning 404.');
     res.status(404).json({
         status: '404',
         message: 'Route not found.  See service documentation for a list of endpoints.',
@@ -259,20 +223,24 @@ function getProtocolHostPort(req: express.Request): string {
 }
 
 // Route -> http.get mappings
+defaultRouter.get('/service', getServiceDoc);
 defaultRouter.get('/get/count', getMazeCount);
 defaultRouter.get('/get/all', getMazes);
 defaultRouter.get('/get/:id', getMaze);
-defaultRouter.get('/view/:id', viewMaze);
-defaultRouter.get('/delete/:id', deleteMaze);
-defaultRouter.get('/service', getServiceDoc);
 defaultRouter.get('/generate/:height/:width/:challenge/:name/:seed', generateMaze);
 
-// Route - http.put mappings
+// Route -> http.delete mappings
+defaultRouter.delete('/delete/:id', deleteMaze);
+
+// Route -> http.put mappings
 defaultRouter.put('/insert', insertMaze);
 defaultRouter.put('/update', updateMaze);
 
 // capture all unhandled routes
 defaultRouter.get('/*', unhandledRoute);
+defaultRouter.put('/*', unhandledRoute);
+defaultRouter.delete('/*', unhandledRoute);
+defaultRouter.post('/*', unhandledRoute);
 
 // expose router as module
 export default defaultRouter;
