@@ -220,13 +220,14 @@ function getProtocolHostPort(req) {
     return util_1.format('%s://%s', req.protocol, req.get('host'));
 }
 // Route -> http.get mappings
+exports.defaultRouter.get('/service', getServiceDoc);
 exports.defaultRouter.get('/get/count', getMazeCount);
 exports.defaultRouter.get('/get/all', getMazes);
 exports.defaultRouter.get('/get/:id', getMaze);
-exports.defaultRouter.get('/delete/:id', deleteMaze);
-exports.defaultRouter.get('/service', getServiceDoc);
 exports.defaultRouter.get('/generate/:height/:width/:challenge/:name/:seed', generateMaze);
-// Route - http.put mappings
+// Route -> http.delete mappings
+exports.defaultRouter.delete('/delete/:id', deleteMaze);
+// Route -> http.put mappings
 exports.defaultRouter.put('/insert', insertMaze);
 exports.defaultRouter.put('/update', updateMaze);
 // capture all unhandled routes

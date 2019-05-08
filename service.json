@@ -7,23 +7,59 @@
             "description": "This document which gleefully describes itself via json.",
             "method": "get",
             "contentType": "application/json",
-            "url": "service/",
+            "url": "service",
             "arguments": []
         },
         {
-            "name": "service?html",
-            "description": "This document which gleefully describes itself in html.",
+            "name": "count",
+            "description": "Returns a count of documents in the mazes collection",
+            "contentType": "application/json",
             "method": "get",
-            "contentType": "text/html",
-            "url": "service/",
+            "url": "get/count",
             "arguments": []
+        },
+        {
+            "name": "all",
+            "description": "Returns all documents in the meazes collection [WARNING: NOT PAGED!]",
+            "contentType": "application/json",
+            "method": "get",
+            "url": "get/all",
+            "arguments": []
+        },
+        {
+            "name": "get",
+            "description": "Get a specific maze from the Mazes collection.",
+            "method": "get",
+            "contentType": "application/json",
+            "url": "get/{mazeId}",
+            "arguments": [
+                {
+                    "name": "mazeId",
+                    "description": "mazeId is a string concatenation the height, width, challenge-level, name, and seed fields. For example: '3:5:10:TestMaze:SampleSeed'",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "delete",
+            "description": "Delete document(s) witht he given MazeId from the mazes collection.",
+            "method": "delete",
+            "contentType": "application/json",
+            "url": "delete/{mazeId}",
+            "arguments": [
+                {
+                    "name": "mazeId",
+                    "description": "mazeId is a string concatenation the height, width, challenge-level, name, and seed fields. For example: '3:5:10:TestMaze:SampleSeed'",
+                    "type": "string"
+                }
+            ]
         },
         {
             "name": "generate",
             "description": "Generates a new Maze from the given height, width, challenge-level, and seed.",
             "method": "get",
             "contentType": "application/json",
-            "url": "generate/height/width/challenge-level/seed",
+            "url": "{generate}/{height}/{width}/{challenge}/{name}/{seed}",
             "arguments": [
                 {
                     "name": "height",
@@ -36,8 +72,8 @@
                     "type": "integer"
                 },
                 {
-                    "name": "challenge-level",
-                    "description": "The challenge-level (difficulty) of the maze to generate. This is must be a numeric value from 0 (easiest) to 10 (most difficult).",
+                    "name": "challenge",
+                    "description": "The challenge (difficulty) of the maze to generate. This must be a numeric value from 0 (easiest) to 10 (most difficult).",
                     "type": "integer"
                 },
                 {
@@ -53,18 +89,20 @@
             ]
         },
         {
-            "name": "get",
-            "description": "Get a specific maze from the Mazes collection.",
-            "method": "get",
+            "name": "insert",
+            "description": "Insert the JSON representation of a Maze object into the mazes collection. Data provided via document body.",
+            "method": "put",
             "contentType": "application/json",
-            "url": "get/mazeId",
-            "arguments": [
-                {
-                    "name": "mazeId",
-                    "description": "mazeId is a string concatenation the height, width, challenge-level, name, and seed fields. For example: '3:5:10:TestMaze:SampleSeed'",
-                    "type": "string"
-                }
-            ]
+            "url": "insert",
+            "arguments": []
+        },
+        {
+            "name": "update",
+            "description": "Updates document with matching ID in the mazes collection with the JSON representation of a Maze object provided via the document body.",
+            "method": "update",
+            "contentType": "application/json",
+            "url": "delete/{mazeId}",
+            "arguments": []
         },
         {
             "name": "live",

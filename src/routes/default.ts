@@ -184,7 +184,7 @@ let getServiceDoc = (req: express.Request, res: express.Response) => {
  * Handles undefined routes
  */
 let unhandledRoute = (req: express.Request, res: express.Response) => {
-    log.warn(__filename, `Route -> [${req.url}]`, 'Unhandled route, returning 404.');
+    log.warn(__filename, `Route -> [${req.method} -> ${req.url}]`, 'Unhandled route, returning 404.');
     res.status(404).json({
         status: '404',
         message: 'Route not found.  See service documentation for a list of endpoints.',
@@ -223,19 +223,24 @@ function getProtocolHostPort(req: express.Request): string {
 }
 
 // Route -> http.get mappings
+defaultRouter.get('/service', getServiceDoc);
 defaultRouter.get('/get/count', getMazeCount);
 defaultRouter.get('/get/all', getMazes);
 defaultRouter.get('/get/:id', getMaze);
-defaultRouter.get('/delete/:id', deleteMaze);
-defaultRouter.get('/service', getServiceDoc);
 defaultRouter.get('/generate/:height/:width/:challenge/:name/:seed', generateMaze);
 
-// Route - http.put mappings
+// Route -> http.delete mappings
+defaultRouter.delete('/delete/:id', deleteMaze);
+
+// Route -> http.put mappings
 defaultRouter.put('/insert', insertMaze);
 defaultRouter.put('/update', updateMaze);
 
 // capture all unhandled routes
 defaultRouter.get('/*', unhandledRoute);
+defaultRouter.put('/*', unhandledRoute);
+defaultRouter.delete('/*', unhandledRoute);
+defaultRouter.post('/*', unhandledRoute);
 
 // expose router as module
 export default defaultRouter;
