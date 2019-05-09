@@ -90,7 +90,7 @@
         },
         {
             "name": "generate/default-maze-list",
-            "description": "Regenerates the default mazes (see service-library/data/maze-list.json) and stores them in the database's mazes collection.",
+            "description": "Regenerates the default mazes (see https://github.com/mazemasterjs/shared-library/blob/development/data/maze-list.json) and stores them in the database's mazes collection.",
             "method": "get",
             "contentType": "application/json",
             "url": "generate/default-maze-list",
