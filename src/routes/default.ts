@@ -1,5 +1,4 @@
 import express from 'express';
-import {format as fmt} from 'util';
 import {Logger} from '@mazemasterjs/logger';
 import Config from '@mazemasterjs/shared-library/Config';
 import Service from '@mazemasterjs/shared-library/Service';
@@ -108,6 +107,64 @@ let generateMaze = async (req: express.Request, res: express.Response) => {
     }
 };
 
+let generateDefaultMazes = async (req: express.Request, res: express.Response) => {
+    log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    try {
+        const defaultMazeStubs = {
+            mazeStubs: [
+                {name: 'Tiny Trek', height: 3, width: 3, challenge: 1, seed: 'TinTre v0.0.1'},
+                {name: 'Miniature March', height: 3, width: 5, challenge: 1, seed: 'MinMar v0.0.1'},
+                {name: 'Short Stroll', height: 5, width: 5, challenge: 2, seed: 'ShoStr v0.0.1'},
+                {name: 'Winding Walk', height: 5, width: 10, challenge: 3, seed: 'WinWal v0.0.1'},
+                {name: 'Simmering Shuffle', height: 10, width: 10, challenge: 3, seed: 'SimShu v0.0.1'},
+                {name: 'Terrible Traipse', height: 10, width: 15, challenge: 4, seed: 'TerTra v0.0.1'},
+                {name: 'Horrible Hike', height: 15, width: 15, challenge: 4, seed: 'HorHik v0.0.1'},
+                {name: 'Jarring Jog', height: 15, width: 20, challenge: 4, seed: 'JarJog v0.0.1'},
+                {name: 'Turkey Trot', height: 20, width: 20, challenge: 5, seed: 'TurTro v0.0.1'},
+                {name: 'Painful Promenade', height: 20, width: 25, challenge: 5, seed: 'PaiPro v0.0.1'},
+                {name: 'Searing Sprint', height: 25, width: 25, challenge: 6, seed: 'SeaSpr v0.0.1'},
+                {name: 'Deadly Dash', height: 25, width: 30, challenge: 6, seed: 'DeaDas v0.0.1'},
+                {name: 'Tormenting Tour', height: 30, width: 30, challenge: 7, seed: 'TorTou v0.0.1'},
+                {name: 'Miserable Mile', height: 30, width: 35, challenge: 7, seed: 'MisMil v0.0.1'},
+                {name: 'Boiling Bound', height: 35, width: 35, challenge: 8, seed: 'BoiBou v0.0.1'},
+                {name: 'Painful Pace', height: 35, width: 40, challenge: 8, seed: 'PaiPac v0.0.1'},
+                {name: 'Gangrenous Gallop', height: 40, width: 40, challenge: 9, seed: 'GanGal v0.0.1'},
+                {name: 'Fearful Flight', height: 40, width: 45, challenge: 9, seed: 'FeaFli v0.0.1'},
+                {name: "Withershins' Wander", height: 45, width: 45, challenge: 10, seed: 'WitWan v0.0.1'},
+                {name: 'Ridiculous Ramble', height: 45, width: 50, challenge: 10, seed: 'RidRam v0.0.1'},
+                {name: "Farstrider's Folly", height: 50, width: 50, challenge: 10, seed: 'FarFol v0.0.1'}
+            ]
+        };
+
+        for (const stub of defaultMazeStubs.mazeStubs) {
+            let maze = new Maze().generate(stub.height, stub.width, stub.challenge, stub.name, stub.seed);
+
+            await dbMan
+                .deleteDocument(config.MONGO_COL_MAZES, maze.Id)
+                .then((result) => {
+                    log.debug(__filename, req.url, `Maze "${maze.Id}" deleted.`);
+                })
+                .catch((err) => {
+                    log.warn(__filename, req.url, `Maze "${maze.Id}" was not deleted.  Error -> ${err.message}`);
+                });
+
+            await dbMan
+                .insertDocument(config.MONGO_COL_MAZES, maze)
+                .then((result) => {
+                    log.debug(__filename, req.url, `Maze ${maze.Id} generated and inserted into mazes collection`);
+                })
+                .catch((err: Error) => {
+                    log.error(__filename, req.url, 'Error inserting maze ->', err);
+                });
+        }
+    } catch (err) {
+        log.error(__filename, req.url, 'Error generating maze ->', err);
+        res.status(400).json({status: '400', message: `${err.name} - ${err.message}`});
+    }
+
+    return res.status(200).json({status: '200', message: 'Default maze generation complete.'});
+};
+
 /**
  * Inserts the maze from the JSON http body into the mongo database.
  *
@@ -201,7 +258,7 @@ let unhandledRoute = (req: express.Request, res: express.Response) => {
 function getSvcDocUrl(req: express.Request): string {
     let svcData: Service = config.SERVICE_DOC;
     let ep = svcData.getEndpointByName('service');
-    return fmt('%s%s%s', getProtocolHostPort(req), svcData.BaseUrl, ep.Url);
+    return `${getProtocolHostPort(req)}${svcData.BaseUrl}${ep.Url}`;
 }
 
 /**
@@ -209,7 +266,7 @@ function getSvcDocUrl(req: express.Request): string {
  * @param req
  */
 function rebuildUrl(req: express.Request): string {
-    return fmt('%s%s%s', getProtocolHostPort(req), ROUTE_PATH, req.path);
+    return `${getProtocolHostPort(req)}${ROUTE_PATH}${req.path}`;
 }
 
 /**
@@ -219,7 +276,7 @@ function rebuildUrl(req: express.Request): string {
  * @param req
  */
 function getProtocolHostPort(req: express.Request): string {
-    return fmt('%s://%s', req.protocol, req.get('host'));
+    return `${req.protocol}://${req.get('host')}`;
 }
 
 // Route -> http.get mappings
@@ -228,7 +285,7 @@ defaultRouter.get('/get/count', getMazeCount);
 defaultRouter.get('/get/all', getMazes);
 defaultRouter.get('/get/:id', getMaze);
 defaultRouter.get('/generate/:height/:width/:challenge/:name/:seed', generateMaze);
-
+defaultRouter.get('/generate/default-maze-list', generateDefaultMazes);
 // Route -> http.delete mappings
 defaultRouter.delete('/delete/:id', deleteMaze);
 

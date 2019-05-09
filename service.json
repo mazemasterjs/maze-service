@@ -89,6 +89,14 @@
             ]
         },
         {
+            "name": "generate/default-maze-list",
+            "description": "Regenerates the default mazes (see service-library/data/maze-list.json) and stores them in the database's mazes collection.",
+            "method": "get",
+            "contentType": "application/json",
+            "url": "generate/default-maze-list",
+            "arguments": []
+        },
+        {
             "name": "insert",
             "description": "Insert the JSON representation of a Maze object into the mazes collection. Data provided via document body.",
             "method": "put",
