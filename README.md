@@ -6,7 +6,7 @@ maze-service handles storage, retrieval, and generation of maze data.
 
 -   MazeMasterJS services are RESTful APIs built in NodeJS with express
 -   Every service includes a service.json file that lists endpoints, and possible arguments (with type)
--   See [/service.json](https://github.com/mazemasterjs/maze-service/blob/development/data/service.json) for complete list of endpoints and arguments.
+-   See [/service.json](https://github.com/mazemasterjs/maze-service/blob/development/service.json) for complete list of endpoints and arguments.
 
 ## Notes
 
