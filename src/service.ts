@@ -6,7 +6,7 @@ import bodyParser from 'body-parser';
 import {format as fmt} from 'util';
 import {Config} from '@mazemasterjs/shared-library/Config';
 import {Logger} from '@mazemasterjs/logger';
-import {defaultRouter} from './routes/default';
+import {defaultRouter} from './routes/mazeRoutes';
 import {probesRouter} from './routes/probes';
 import DatabaseManager from '@mazemasterjs/database-manager/DatabaseManager';
 import {Server} from 'http';

@@ -20,7 +20,7 @@
         },
         {
             "name": "all",
-            "description": "Returns all documents in the meazes collection [WARNING: NOT PAGED!]",
+            "description": "Returns stubbed maze data for all documents in the mazes collection.  Stubs contain all meta data, but leave out the cells[][], startCell, finishCell, _id, and textRender.  Use /get/mazeId to get a full maze document. ",
             "contentType": "application/json",
             "method": "get",
             "url": "get/all",
@@ -42,7 +42,7 @@
         },
         {
             "name": "delete",
-            "description": "Delete document(s) witht he given MazeId from the mazes collection.",
+            "description": "Delete document(s) with the given MazeId from the mazes collection.",
             "method": "delete",
             "contentType": "application/json",
             "url": "delete/{mazeId}",
@@ -89,6 +89,14 @@
             ]
         },
         {
+            "name": "generate/default-maze-list",
+            "description": "Regenerates the default mazes (see https://github.com/mazemasterjs/shared-library/blob/development/data/maze-list.json) and stores them in the database's mazes collection.",
+            "method": "get",
+            "contentType": "application/json",
+            "url": "generate/default-maze-list",
+            "arguments": []
+        },
+        {
             "name": "insert",
             "description": "Insert the JSON representation of a Maze object into the mazes collection. Data provided via document body.",
             "method": "put",
@@ -99,9 +107,9 @@
         {
             "name": "update",
             "description": "Updates document with matching ID in the mazes collection with the JSON representation of a Maze object provided via the document body.",
-            "method": "update",
+            "method": "put",
             "contentType": "application/json",
-            "url": "delete/{mazeId}",
+            "url": "update",
             "arguments": []
         },
         {
@@ -109,7 +117,7 @@
             "description": "Liveness probe for K8s monitoring.",
             "contentType": "application/json",
             "method": "get",
-            "url": "probes/live/",
+            "url": "probes/live",
             "arguments": []
         },
         {
@@ -117,7 +125,7 @@
             "description": "Readiness probe for K8s monitoring.",
             "contentType": "application/json",
             "method": "get",
-            "url": "probes/ready/",
+            "url": "probes/ready",
             "arguments": []
         }
     ]

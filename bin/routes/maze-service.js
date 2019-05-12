@@ -85,6 +85,7 @@ let getAllMazeStubs = (req, res) => __awaiter(this, void 0, void 0, function* ()
                     allStubs.push(stub);
                 }
             }
+            // if we don't have at least pageSize elements, we've hit the last page
             if (pagedStubs.length < pageSize) {
                 done = true;
                 log.debug(__filename, req.url, `-> ${allStubs.length} maze stubs collected from ${pageNum} pages.`);
@@ -327,4 +328,4 @@ exports.defaultRouter.delete('/*', unhandledRoute);
 exports.defaultRouter.post('/*', unhandledRoute);
 // expose router as module
 exports.default = exports.defaultRouter;
-//# sourceMappingURL=default.js.map
+//# sourceMappingURL=maze-service.js.map

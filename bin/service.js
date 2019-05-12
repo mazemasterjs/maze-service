@@ -19,7 +19,7 @@ const body_parser_1 = __importDefault(require("body-parser"));
 const util_1 = require("util");
 const Config_1 = require("@mazemasterjs/shared-library/Config");
 const logger_1 = require("@mazemasterjs/logger");
-const default_1 = require("./routes/default");
+const mazeRoutes_1 = require("./routes/mazeRoutes");
 const probes_1 = require("./routes/probes");
 const DatabaseManager_1 = __importDefault(require("@mazemasterjs/database-manager/DatabaseManager"));
 const cors_1 = __importDefault(require("cors"));
@@ -108,7 +108,7 @@ function launchExpress() {
     // set up the probes router (live/ready checks)
     app.use('/api/maze/probes', probes_1.probesRouter);
     // set up the default route handler
-    app.use('/api/maze', default_1.defaultRouter);
+    app.use('/api/maze', mazeRoutes_1.defaultRouter);
     // handle general css file requests
     app.get('/css/:file', getCssFile);
     // handle general image file requests
