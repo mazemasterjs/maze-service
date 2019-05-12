@@ -21,8 +21,15 @@ const log = logger_1.Logger.getInstance();
 const config = Config_1.default.getInstance();
 const ROUTE_PATH = '/api/maze';
 let dbMan;
+// cache maze data
+let stubCache = new Array();
+let cacheExpiration = Date.now();
+// load env vars
+const CACHE_DURATION = process.env.CACHE_DURATION_MAZES === undefined ? 300000 : parseInt(process.env.CACHE_DURATION_MAZES + '', 10);
+// other constants
+const STUB_PROJECTION = { _id: 0, cells: 0, textRender: 0, startCell: 0, finishCell: 0 };
 /**
- * This just assigns mongo the instance of DatabaseManager.  We shouldn't be
+ * This just assigns mongo the instance of DatabaseManager. We shouldn't be
  * able to get here without a database connection and existing instance, but
  * we'll do some logging / error checking anyway.
  */
@@ -32,10 +39,136 @@ DatabaseManager_1.default.getInstance()
     // enable the "readiness" probe that tells OpenShift that it can send traffic to this service's pod
     config.READY_TO_ROCK = true;
     log.info(__filename, 'DatabaseManager.getInstance()', 'Service is now LIVE, READY, and taking requests.');
+    // db connected, prepare the maze cache
+    loadMazeCaches();
 })
     .catch((err) => {
     log.error(__filename, 'DatabaseManager.getInstance()', 'Error getting DatabaseManager instance ->', err);
 });
+/**
+ * loads maze data into local caches
+ *
+ * */
+function loadMazeCaches() {
+    log.debug(__filename, 'loadMazeCaches()', 'Preparing maze cache.');
+    if (process.env.CACHE_DURATION_MAZES === undefined) {
+        log.warn(__filename, 'loadMazeCaches()', `env.CACHE_DURATION_MAZES not set, using default of ${CACHE_DURATION}ms.`);
+    }
+    else {
+        log.info(__filename, 'loadMazeCaches()', `Cache duration set via config to ${CACHE_DURATION}ms.`);
+    }
+    buildMazeArray(STUB_PROJECTION).then((stubArray) => {
+        stubCache = stubArray;
+        cacheExpiration = Date.now() + CACHE_DURATION;
+        log.info(__filename, 'loadMazeCaches()', `stubCache loaded with ${stubCache.length} stubbed maze documents, caches expire at ${cacheExpiration}.`);
+    });
+}
+/**
+ * Builds and returns an array of maze objects with the given projection
+ *
+ * @param projection The field projection to use during the query
+ */
+function buildMazeArray(projection) {
+    return __awaiter(this, void 0, void 0, function* () {
+        let mazes = new Array();
+        let cacheValid = cacheExpiration > Date.now();
+        let trappedError;
+        const query = {};
+        const expectedCount = yield dbMan.getDocumentCount(config.MONGO_COL_MAZES).then((count) => {
+            return count;
+        });
+        // check the requested array length agains the database document count and invalidate if there is a mismatch
+        if (cacheValid && stubCache.length != expectedCount) {
+            log.warn(__filename, 'buildMazeArray()', `stubCache.length (${stubCache.length}) does not match document count ${expectedCount}. Invalidating cache.`);
+            cacheValid = false;
+        }
+        // return a cached array if not expired, otherwise rebuild the requested array
+        if (cacheValid) {
+            log.debug(__filename, 'buildMazeArray()', 'Caches valid and fresh, returning cached maze data.');
+            mazes = stubCache;
+        }
+        else {
+            try {
+                let done = false;
+                let pageNum = 1;
+                let pageSize = 10;
+                // loop through the paged list of mazes and return the full array of mazes
+                while (!done) {
+                    let page = yield dbMan.getDocuments(config.MONGO_COL_MAZES, query, projection, pageSize, pageNum);
+                    if (page.length > 0) {
+                        log.debug(__filename, 'buildMazeArray()', `-> Page #${pageNum}, pushing ${page.length} documents into mazes array.`);
+                        // can't easily use Array.concat, so have to loop and push
+                        for (const stub of page) {
+                            mazes.push(stub);
+                        }
+                    }
+                    // if we don't have at least pageSize elements, we've hit the last page
+                    if (page.length < pageSize) {
+                        done = true;
+                        log.debug(__filename, 'buildMazeArray()', `-> Finished. ${mazes.length} maze documents collected from ${pageNum} pages.`);
+                    }
+                    else {
+                        pageNum++;
+                    }
+                }
+                // just a little sanity check...
+                if (mazes.length < expectedCount) {
+                    log.warn(__filename, 'buildMazeArray()', `Returned ${mazes.length} documents, but expected ${expectedCount}`);
+                }
+            }
+            catch (err) {
+                log.error(__filename, 'buildMazeArray()', 'Unable to build array of maze documents ->', err);
+                trappedError = err;
+            }
+        }
+        // resolve and return the promise
+        return new Promise((resolve, reject) => {
+            if (trappedError !== undefined) {
+                reject(trappedError);
+            }
+            else {
+                resolve(mazes);
+            }
+        });
+    });
+}
+/**
+ * Strip some data from a maze to make it a stub then insert it into stubCache and reset expiration
+ *
+ * @param maze
+ */
+function addToCache(maze) {
+    delete maze._id;
+    delete maze.cells;
+    delete maze.textRender;
+    delete maze.startCell;
+    delete maze.finishCell;
+    stubCache.push(maze);
+    cacheExpiration = Date.now() + CACHE_DURATION;
+}
+/**
+ * Attempts to insert the given document into the mazes collection
+ *
+ * @param mazeDoc - Maze document
+ */
+function doInsertMaze(mazeDoc) {
+    return __awaiter(this, void 0, void 0, function* () {
+        log.debug(__filename, `doInsertMaze(${mazeDoc})`, `Attempting to insert ${mazeDoc.id}`);
+        let result = yield dbMan
+            .insertDocument(config.MONGO_COL_MAZES, mazeDoc)
+            .then((result) => {
+            addToCache(result.ops[0]);
+            return result;
+        })
+            .catch((err) => {
+            log.error(__filename, `doInsertMaze(${mazeDoc.id})`, 'Error inserting maze ->', err);
+            return err;
+        });
+        return new Promise((resolve, reject) => {
+            resolve(result);
+        });
+    });
+}
 /**
  * Response with json maze-count value showing the count of all maze documents found
  * in the maze collection.
@@ -64,40 +197,11 @@ let getMazeCount = (req, res) => __awaiter(this, void 0, void 0, function* () {
  */
 let getAllMazeStubs = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    const query = {};
-    const projection = { _id: 0, cells: 0, textRender: 0, startCell: 0, finishCell: 0 };
-    const expectedCount = yield dbMan.getDocumentCount(config.MONGO_COL_MAZES).then((count) => {
-        return count;
-    });
-    log.debug(__filename, req.url, `Attempting to collect all maze stubs. Expected count: ${expectedCount}`);
     try {
-        let done = false;
-        let pageNum = 1;
-        let pageSize = 10;
-        let allStubs = new Array();
-        // loop through the paged list of mazes and return the full array of stubs
-        while (!done) {
-            let pagedStubs = yield dbMan.getDocuments(config.MONGO_COL_MAZES, query, projection, pageSize, pageNum);
-            if (pagedStubs.length > 0) {
-                log.debug(__filename, req.url, `-> Page #${pageNum}, pushing ${pagedStubs.length} elements into allStubs array.`);
-                // can't easily use Array.concat, so have to loop and push
-                for (const stub of pagedStubs) {
-                    allStubs.push(stub);
-                }
-            }
-            if (pagedStubs.length < pageSize) {
-                done = true;
-                log.debug(__filename, req.url, `-> ${allStubs.length} maze stubs collected from ${pageNum} pages.`);
-            }
-            else {
-                pageNum++;
-            }
-        }
-        // just a little sanity check...
-        if (allStubs.length < expectedCount) {
-            log.warn(__filename, req.url, `Returned ${allStubs.length} stubs, but expected ${expectedCount}`);
-        }
-        res.status(200).json(allStubs);
+        buildMazeArray(STUB_PROJECTION).then((stubs) => {
+            stubCache = stubs;
+            res.status(200).json(stubCache);
+        });
     }
     catch (err) {
         res.status(500).json({ status: '500', message: err.message });
@@ -110,21 +214,19 @@ let getAllMazeStubs = (req, res) => __awaiter(this, void 0, void 0, function* ()
  * @param res - express.Response
  */
 let getMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
+    const mazeId = req.params.id;
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     yield dbMan
-        .getDocument(config.MONGO_COL_MAZES, { id: req.params.id })
-        .then((doc) => {
-        if (doc) {
-            let maze = new Maze_1.default(doc);
-            log.trace(__filename, req.url, `Maze ${maze.Id} found and returned.`);
-            res.status(200).json(maze);
+        .getDocument(config.MONGO_COL_MAZES, { id: mazeId }, { _id: 0 })
+        .then((maze) => {
+        if (!maze) {
+            return res.status(404).json({ status: '404', message: 'Maze not found.' });
         }
         else {
-            res.status(404).json({ status: '404', message: 'Maze not found.' });
+            return res.status(200).json(maze);
         }
     })
         .catch((err) => {
-        log.error(__filename, `Route -> [${req.url}]`, 'Error fetching maze ->', err);
         res.status(500).json({ status: '500', message: err.message });
     });
 });
@@ -147,6 +249,7 @@ let generateMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
 });
 let generateDefaultMazes = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    cacheExpiration = Date.now(); // invalidate cache
     try {
         const defaultMazeStubs = {
             mazeStubs: [
@@ -178,23 +281,30 @@ let generateDefaultMazes = (req, res) => __awaiter(this, void 0, void 0, functio
             yield dbMan
                 .deleteDocument(config.MONGO_COL_MAZES, { id: maze.Id })
                 .then((result) => {
-                log.debug(__filename, req.url, `Maze "${maze.Id}" deleted.`);
+                switch (result.deletedCount) {
+                    case 0: {
+                        log.debug(__filename, req.url, `Maze "${maze.Id}" not found.`);
+                        break;
+                    }
+                    case 1: {
+                        log.debug(__filename, req.url, `Maze "${maze.Id}" deleted.`);
+                        break;
+                    }
+                    default: {
+                        log.warn(__filename, req.url, `!! WARNING !! ${result.deletedCount} mazes with id "${maze.Id}" deleted`);
+                    }
+                }
             })
                 .catch((err) => {
-                log.warn(__filename, req.url, `Maze "${maze.Id}" was not deleted.  Error -> ${err.message}`);
+                log.warn(__filename, req.url, `Maze "${maze.Id}" was not deleted. Error -> ${err.message}`);
             });
-            yield dbMan
-                .insertDocument(config.MONGO_COL_MAZES, maze)
-                .then((result) => {
+            yield doInsertMaze(maze).then((result) => {
                 if (result.insertedCount == 1) {
                     log.debug(__filename, req.url, `Maze ${maze.Id} inserted into mazes collection`);
                 }
                 else {
                     log.warn(__filename, req.url, `Maze ${maze.Id} generated, but insertCount returned 0.`);
                 }
-            })
-                .catch((err) => {
-                log.error(__filename, req.url, 'Error inserting maze ->', err);
             });
         }
     }
@@ -212,14 +322,13 @@ let generateDefaultMazes = (req, res) => __awaiter(this, void 0, void 0, functio
  */
 let insertMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    cacheExpiration = Date.now(); // invalidate cache
     let maze = req.body;
-    yield dbMan
-        .insertDocument(config.MONGO_COL_MAZES, maze)
+    yield doInsertMaze(maze)
         .then((result) => {
         res.status(200).json(result);
     })
         .catch((err) => {
-        log.error(__filename, req.url, 'Error inserting maze ->', err);
         res.status(400).json({ status: '400', message: `${err.name} - ${err.message}` });
     });
 });
@@ -232,6 +341,7 @@ let insertMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
  */
 let updateMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
+    cacheExpiration = Date.now(); // invalidate cache
     let maze = new Maze_1.default(req.body);
     yield dbMan
         .updateDocument(config.MONGO_COL_MAZES, { id: maze.Id }, maze)
@@ -250,15 +360,25 @@ let updateMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
  * @param res - express.Response
  */
 let deleteMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
+    const mazeId = req.params.id;
+    cacheExpiration = Date.now(); // invalidate cache
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    let ret = yield dbMan.deleteDocument(config.MONGO_COL_MAZES, { id: req.params.id });
-    // check for errors and respond correctly
-    if (ret instanceof Error) {
-        res.status(500).json({ error: ret.name, message: ret.message });
-    }
-    else {
-        res.status(200).json(ret);
-    }
+    yield dbMan.deleteDocument(config.MONGO_COL_MAZES, { id: mazeId }).then((result) => {
+        switch (result.deletedCount) {
+            case 0: {
+                log.debug(__filename, req.url, `Maze "${mazeId}" not found.`);
+                return res.status(404).json(result);
+            }
+            case 1: {
+                log.debug(__filename, req.url, `Maze "${mazeId}" deleted.`);
+                return res.status(200).json(result);
+            }
+            default: {
+                log.warn(__filename, req.url, `!! WARNING !! ${result.deletedCount} mazes with id "${mazeId}" deleted`);
+                return res.status(200).json(result);
+            }
+        }
+    });
 });
 /**
  * Responds with the raw JSON service document unless the "?html"
@@ -277,7 +397,7 @@ let unhandledRoute = (req, res) => {
     log.warn(__filename, `Route -> [${req.method} -> ${req.url}]`, 'Unhandled route, returning 404.');
     res.status(404).json({
         status: '404',
-        message: 'Route not found.  See service documentation for a list of endpoints.',
+        message: 'Route not found. See service documentation for a list of endpoints.',
         'service-document': getSvcDocUrl
     });
 };
@@ -327,4 +447,4 @@ exports.defaultRouter.delete('/*', unhandledRoute);
 exports.defaultRouter.post('/*', unhandledRoute);
 // expose router as module
 exports.default = exports.defaultRouter;
-//# sourceMappingURL=default.js.map
+//# sourceMappingURL=mazeRoutes.js.map
