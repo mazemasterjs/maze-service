@@ -4,6 +4,7 @@
     "endpoints": [
         {
             "name": "service",
+            "title": "get service API details",
             "description": "This document which gleefully describes itself via json.",
             "method": "get",
             "contentType": "application/json",
@@ -12,6 +13,7 @@
         },
         {
             "name": "count",
+            "title": "count mazes in database",
             "description": "Returns a count of documents in the mazes collection",
             "contentType": "application/json",
             "method": "get",
@@ -20,6 +22,7 @@
         },
         {
             "name": "all",
+            "title": "retreive all mazes",
             "description": "Returns stubbed maze data for all documents in the mazes collection.  Stubs contain all meta data, but leave out the cells[][], startCell, finishCell, _id, and textRender.  Use /get/mazeId to get a full maze document. ",
             "contentType": "application/json",
             "method": "get",
@@ -28,6 +31,7 @@
         },
         {
             "name": "get",
+            "title": "look up a maze",
             "description": "Get a specific maze from the Mazes collection.",
             "method": "get",
             "contentType": "application/json",
@@ -35,6 +39,7 @@
             "arguments": [
                 {
                     "name": "mazeId",
+                    "title": "which maze to lookup",
                     "description": "mazeId is a string concatenation the height, width, challenge-level, name, and seed fields. For example: '3:5:10:TestMaze:SampleSeed'",
                     "type": "string"
                 }
@@ -42,6 +47,7 @@
         },
         {
             "name": "delete",
+            "title": "deletes a maze",
             "description": "Delete document(s) with the given MazeId from the mazes collection.",
             "method": "delete",
             "contentType": "application/json",
@@ -49,6 +55,7 @@
             "arguments": [
                 {
                     "name": "mazeId",
+                    "title": "maze to delete",
                     "description": "mazeId is a string concatenation the height, width, challenge-level, name, and seed fields. For example: '3:5:10:TestMaze:SampleSeed'",
                     "type": "string"
                 }
@@ -56,6 +63,7 @@
         },
         {
             "name": "generate",
+            "title": "creates a maze",
             "description": "Generates a new Maze from the given height, width, challenge-level, and seed.",
             "method": "get",
             "contentType": "application/json",
@@ -63,26 +71,31 @@
             "arguments": [
                 {
                     "name": "height",
+                    "title": "height of the maze",
                     "description": "The height of the maze to generate. This must be a numeric value ranging from MAZE_MIN_HEIGHT to MAZE_MAX_HEIGHT.",
                     "type": "integer"
                 },
                 {
                     "name": "width",
+                    "title": "width of the maze",
                     "description": "The width of the maze to generate. This must be a numeric value ranging from MAZE_MIN_WIDTH and MAZE_MAX_WIDTH.",
                     "type": "integer"
                 },
                 {
                     "name": "challenge",
+                    "title": "maze difficulty",
                     "description": "The challenge (difficulty) of the maze to generate. This must be a numeric value from 0 (easiest) to 10 (most difficult).",
                     "type": "integer"
                 },
                 {
                     "name": "name",
+                    "title": "maze name",
                     "description": "The name of the new maze. This is a string value.",
                     "type": "string"
                 },
                 {
                     "name": "seed",
+                    "title": "maze generator seed",
                     "description": "The seed value to use when generating this maze. This is a string value.",
                     "type": "string"
                 }
@@ -90,6 +103,7 @@
         },
         {
             "name": "generate/default-maze-list",
+            "title": "generates all 'default' mazes",
             "description": "Regenerates the default mazes (see https://github.com/mazemasterjs/shared-library/blob/development/data/maze-list.json) and stores them in the database's mazes collection.",
             "method": "get",
             "contentType": "application/json",
@@ -98,6 +112,7 @@
         },
         {
             "name": "insert",
+            "title": "upload a maze",
             "description": "Insert the JSON representation of a Maze object into the mazes collection. Data provided via document body.",
             "method": "put",
             "contentType": "application/json",
@@ -106,6 +121,7 @@
         },
         {
             "name": "update",
+            "title": "update a maze",
             "description": "Updates document with matching ID in the mazes collection with the JSON representation of a Maze object provided via the document body.",
             "method": "put",
             "contentType": "application/json",
@@ -114,6 +130,7 @@
         },
         {
             "name": "live",
+            "title": "check if service is online",
             "description": "Liveness probe for K8s monitoring.",
             "contentType": "application/json",
             "method": "get",
@@ -122,6 +139,7 @@
         },
         {
             "name": "ready",
+            "title": "check if service is ready for use",
             "description": "Readiness probe for K8s monitoring.",
             "contentType": "application/json",
             "method": "get",
