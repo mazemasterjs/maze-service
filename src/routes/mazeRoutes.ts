@@ -457,7 +457,7 @@ function getProtocolHostPort(req: express.Request): string {
 }
 
 // Test Route for Demo
-defaultRouter.put('/helloWorld', helloWorldRoute);
+defaultRouter.get('/helloWorld', helloWorldRoute);
 
 // Route -> http.get mappings
 defaultRouter.get('/service', getServiceDoc);
