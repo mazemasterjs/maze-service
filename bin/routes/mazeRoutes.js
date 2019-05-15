@@ -197,15 +197,13 @@ let getMazeCount = (req, res) => __awaiter(this, void 0, void 0, function* () {
  */
 let getAllMazeStubs = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    try {
-        buildMazeArray(STUB_PROJECTION).then((stubs) => {
-            stubCache = stubs;
-            res.status(200).json(stubCache);
-        });
-    }
-    catch (err) {
+    yield buildMazeArray(STUB_PROJECTION)
+        .then((stubs) => {
+        res.status(200).json(stubCache);
+    })
+        .catch((err) => {
         res.status(500).json({ status: '500', message: err.message });
-    }
+    });
 });
 /**
  * Gets and returns a json maze object with the specified Maze.Id.
@@ -391,6 +389,14 @@ let getServiceDoc = (req, res) => {
     res.status(200).json(config.SERVICE_DOC);
 };
 /**
+ *
+ * @param req
+ * @param res
+ */
+let helloWorldRoute = (req, res) => {
+    res.status(200).json({ status: 200, message: 'Hello World' });
+};
+/**
  * Handles undefined routes
  */
 let unhandledRoute = (req, res) => {
@@ -428,6 +434,8 @@ function rebuildUrl(req) {
 function getProtocolHostPort(req) {
     return `${req.protocol}://${req.get('host')}`;
 }
+// Test Route for Demo
+exports.defaultRouter.put('/helloWorld', helloWorldRoute);
 // Route -> http.get mappings
 exports.defaultRouter.get('/service', getServiceDoc);
 exports.defaultRouter.get('/get/count', getMazeCount);
