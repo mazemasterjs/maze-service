@@ -435,7 +435,7 @@ function getProtocolHostPort(req) {
     return `${req.protocol}://${req.get('host')}`;
 }
 // Test Route for Demo
-exports.defaultRouter.put('/helloWorld', helloWorldRoute);
+exports.defaultRouter.get('/helloWorld', helloWorldRoute);
 // Route -> http.get mappings
 exports.defaultRouter.get('/service', getServiceDoc);
 exports.defaultRouter.get('/get/count', getMazeCount);
