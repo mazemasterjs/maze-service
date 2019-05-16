@@ -1,4 +1,6 @@
 import express from 'express';
+import fs from 'fs';
+import path from 'path';
 import {Logger} from '@mazemasterjs/logger';
 import Config from '@mazemasterjs/shared-library/Config';
 import Service from '@mazemasterjs/shared-library/Service';
@@ -9,7 +11,6 @@ export const defaultRouter = express.Router();
 
 const log: Logger = Logger.getInstance();
 const config: Config = Config.getInstance();
-const ROUTE_PATH: string = '/api/maze';
 let dbMan: DatabaseManager;
 
 // cache maze data
@@ -20,6 +21,7 @@ let cacheExpiration = Date.now();
 const CACHE_DURATION = process.env.CACHE_DURATION_MAZES === undefined ? 300000 : parseInt(process.env.CACHE_DURATION_MAZES + '', 10);
 
 // other constants
+const MAZE_DATA_FILE = path.resolve('data/default-maze-list.json');
 const STUB_PROJECTION = {_id: 0, cells: 0, textRender: 0, startCell: 0, finishCell: 0};
 
 /**
@@ -134,18 +136,18 @@ async function buildMazeArray(projection: any): Promise<Array<any>> {
 }
 
 /**
- * Strip some data from a maze to make it a stub then insert it into stubCache and reset expiration
+ * Removes data fields not needed for basic list views from a full maze object
+ * to avoid transferring large amounts of data for list-oriented use cases.
  *
- * @param maze
+ * @param maze A JSON object matching the Maze object signature
  */
-function addToCache(maze: any) {
+function getStubFromMazeDoc(maze: any) {
     delete maze._id;
     delete maze.cells;
     delete maze.textRender;
     delete maze.startCell;
     delete maze.finishCell;
-    stubCache.push(maze);
-    cacheExpiration = Date.now() + CACHE_DURATION;
+    return maze;
 }
 
 /**
@@ -159,7 +161,11 @@ async function doInsertMaze(mazeDoc: any): Promise<any> {
     let result = await dbMan
         .insertDocument(config.MONGO_COL_MAZES, mazeDoc)
         .then((result) => {
-            addToCache(result.ops[0]);
+            // push the new maze stub onto the cache and reset expiration timer
+            stubCache.push(getStubFromMazeDoc(result.ops[0]));
+            cacheExpiration = Date.now() + CACHE_DURATION;
+
+            // return the insert result
             return result;
         })
         .catch((err: Error) => {
@@ -252,74 +258,99 @@ let generateMaze = async (req: express.Request, res: express.Response) => {
     }
 };
 
+/**
+ * Deletes existing mazes from MAZE_DATA_FILE and regenerates them from the
+ * settings in the data file.  Useful for rebuilding a full set of 21 mazes after updates
+ * to the generation routines are made.
+ *
+ */
 let generateDefaultMazes = async (req: express.Request, res: express.Response) => {
     log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     cacheExpiration = Date.now(); // invalidate cache
-    try {
-        const defaultMazeStubs = {
-            mazeStubs: [
-                {name: "Farstrider's Folly", height: 50, width: 50, challenge: 10, seed: 'FarFol v0.0.1'},
-                {name: 'Ridiculous Ramble', height: 45, width: 50, challenge: 10, seed: 'RidRam v0.0.1'},
-                {name: "Withershins' Wander", height: 45, width: 45, challenge: 10, seed: 'WitWan v0.0.1'},
-                {name: 'Fearful Flight', height: 40, width: 45, challenge: 9, seed: 'FeaFli v0.0.1'},
-                {name: 'Gangrenous Gallop', height: 40, width: 40, challenge: 9, seed: 'GanGal v0.0.1'},
-                {name: 'Painful Pace', height: 35, width: 40, challenge: 8, seed: 'PaiPac v0.0.1'},
-                {name: 'Boiling Bound', height: 35, width: 35, challenge: 8, seed: 'BoiBou v0.0.1'},
-                {name: 'Miserable Mile', height: 30, width: 35, challenge: 7, seed: 'MisMil v0.0.1'},
-                {name: 'Tormenting Tour', height: 30, width: 30, challenge: 7, seed: 'TorTou v0.0.1'},
-                {name: 'Deadly Dash', height: 25, width: 30, challenge: 6, seed: 'DeaDas v0.0.1'},
-                {name: 'Searing Sprint', height: 25, width: 25, challenge: 6, seed: 'SeaSpr v0.0.1'},
-                {name: 'Painful Promenade', height: 20, width: 25, challenge: 5, seed: 'PaiPro v0.0.1'},
-                {name: 'Turkey Trot', height: 20, width: 20, challenge: 5, seed: 'TurTro v0.0.1'},
-                {name: 'Jarring Jog', height: 15, width: 20, challenge: 4, seed: 'JarJog v0.0.1'},
-                {name: 'Horrible Hike', height: 15, width: 15, challenge: 4, seed: 'HorHik v0.0.1'},
-                {name: 'Terrible Traipse', height: 10, width: 15, challenge: 4, seed: 'TerTra v0.0.1'},
-                {name: 'Simmering Shuffle', height: 10, width: 10, challenge: 3, seed: 'SimShu v0.0.1'},
-                {name: 'Winding Walk', height: 5, width: 10, challenge: 3, seed: 'WinWal v0.0.1'},
-                {name: 'Short Stroll', height: 5, width: 5, challenge: 2, seed: 'ShoStr v0.0.1'},
-                {name: 'Miniature March', height: 3, width: 5, challenge: 1, seed: 'MinMar v0.0.1'},
-                {name: 'Tiny Trek', height: 3, width: 3, challenge: 1, seed: 'TinTre v0.0.1'}
-            ]
-        };
 
-        for (const stub of defaultMazeStubs.mazeStubs) {
-            let maze = new Maze().generate(stub.height, stub.width, stub.challenge, stub.name, stub.seed);
+    if (!fs.existsSync(MAZE_DATA_FILE)) {
+        const err = new Error(`File not found: ${MAZE_DATA_FILE}. CWD: ${__dirname}`);
+        log.error(__filename, 'generateDefaultMazes()', 'Unable to load maze-data file ->', err);
+        return res.status(500).json({status: '500', message: err.message});
+    }
 
-            await dbMan
-                .deleteDocument(config.MONGO_COL_MAZES, {id: maze.Id})
-                .then((result) => {
-                    switch (result.deletedCount) {
-                        case 0: {
-                            log.debug(__filename, req.url, `Maze "${maze.Id}" not found.`);
-                            break;
-                        }
-                        case 1: {
-                            log.debug(__filename, req.url, `Maze "${maze.Id}" deleted.`);
-                            break;
-                        }
-                        default: {
-                            log.warn(__filename, req.url, `!! WARNING !! ${result.deletedCount} mazes with id "${maze.Id}" deleted`);
-                        }
+    // load the default-maze-list.json file and convert to json
+    const mazeData = JSON.parse(fs.readFileSync(MAZE_DATA_FILE, 'UTF-8'));
+
+    // capture errors to return if function completes
+    let resOk: object[] = [];
+    let resWrn: object[] = [];
+    let resErr: object[] = [];
+
+    // parse the file, deleting all mazes first, then regenerating and inserting them
+    for (const stub of mazeData.stubs) {
+        const stubId = `${stub.height}:${stub.width}:${stub.challenge}:${stub.seed}`;
+        await dbMan
+            .deleteDocument(config.MONGO_COL_MAZES, {id: stubId})
+            .then((result) => {
+                switch (result.deletedCount) {
+                    case 0: {
+                        log.debug(__filename, req.url, `Maze "${stubId}" not found.`);
+                        resWrn.push({id: stubId, msg: `delete failed - maze not found`});
+                        break;
+                    }
+                    case 1: {
+                        log.debug(__filename, req.url, `Maze "${stubId}" deleted.`);
+                        resOk.push({id: stubId, msg: 'maze deleted'});
+                        break;
+                    }
+                    default: {
+                        log.warn(__filename, req.url, `!! WARNING !! ${result.deletedCount} mazes with id "${stubId}" deleted`);
+                        resWrn.push({id: stubId, msg: `multiple mazes delete: (${result.deletedCount})`});
+                    }
+                }
+            })
+            .catch((err) => {
+                log.warn(__filename, req.url, `Maze "${stubId}" was not deleted. Error -> ${err.message}`);
+                resErr.push({id: stubId, msg: err.message});
+            });
+
+        // only generate and insert the maze if regen is not disabled
+        if (req.query.NO_REGEN !== 'true') {
+            let maze: Maze;
+
+            // generate the maze
+            try {
+                maze = new Maze().generate(stub.height, stub.width, stub.challenge, stub.name, stub.seed);
+            } catch (err) {
+                log.error(__filename, 'generateDefaultMazes()', `Error generating default maze named '${stub.name}' ->`, err);
+                resErr.push(err);
+                return res.status(500).json({ok: resOk, warn: resWrn, error: resErr});
+            }
+
+            // and insert it into the databse
+            await doInsertMaze(maze)
+                .then((mdbRes) => {
+                    console.log(JSON.stringify(mdbRes));
+                    if (mdbRes.result.n == 1) {
+                        log.debug(__filename, req.url, `Maze ${maze.Id} inserted into mazes collection`);
+                        resOk.push({id: maze.Id, msg: 'inserted'});
+                    } else {
+                        log.warn(__filename, req.url, `Maze ${maze.Id} generated, but insert count was ${mdbRes.result.n}.`);
+                        resWrn.push({id: maze.Id, msg: `insert result count: ${mdbRes.result.n}`});
                     }
                 })
                 .catch((err) => {
-                    log.warn(__filename, req.url, `Maze "${maze.Id}" was not deleted. Error -> ${err.message}`);
+                    log.error(__filename, req.url, 'Error inserting regenerated maze data ->', err);
+                    resErr.push({id: maze.Id, msg: err.message});
                 });
-
-            await doInsertMaze(maze).then((result) => {
-                if (result.insertedCount == 1) {
-                    log.debug(__filename, req.url, `Maze ${maze.Id} inserted into mazes collection`);
-                } else {
-                    log.warn(__filename, req.url, `Maze ${maze.Id} generated, but insertCount returned 0.`);
-                }
-            });
         }
-    } catch (err) {
-        log.error(__filename, req.url, 'Error generating maze ->', err);
-        res.status(400).json({status: '400', message: `${err.name} - ${err.message}`});
     }
 
-    return res.status(200).json({status: '200', message: 'Default maze generation complete.'});
+    // set response status based on error count
+    if (resErr.length > 0) {
+        res.status(500);
+    } else {
+        res.status(200);
+    }
+
+    // return the results
+    return res.json({ok: resOk, warn: resWrn, error: resErr});
 };
 
 /**
@@ -406,15 +437,6 @@ let getServiceDoc = (req: express.Request, res: express.Response) => {
 };
 
 /**
- *
- * @param req
- * @param res
- */
-let helloWorldRoute = (req: express.Request, res: express.Response) => {
-    res.status(200).json({status: 200, message: 'Hello World'});
-};
-
-/**
  * Handles undefined routes
  */
 let unhandledRoute = (req: express.Request, res: express.Response) => {
@@ -443,7 +465,7 @@ function getSvcDocUrl(req: express.Request): string {
  * @param req
  */
 function rebuildUrl(req: express.Request): string {
-    return `${getProtocolHostPort(req)}${ROUTE_PATH}${req.path}`;
+    return `${getProtocolHostPort(req)}${config.SERVICE_DOC.baseUrl}${req.path}`;
 }
 
 /**
@@ -455,9 +477,6 @@ function rebuildUrl(req: express.Request): string {
 function getProtocolHostPort(req: express.Request): string {
     return `${req.protocol}://${req.get('host')}`;
 }
-
-// Test Route for Demo
-defaultRouter.get('/helloWorld', helloWorldRoute);
 
 // Route -> http.get mappings
 defaultRouter.get('/service', getServiceDoc);

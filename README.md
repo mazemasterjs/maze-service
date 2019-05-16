@@ -15,6 +15,13 @@ maze-service handles storage, retrieval, and generation of maze data.
 
 ## Change Log
 
+### v1.1.2
+
+-   Reworked /generate/default-maze-list a bit to fix potential promise-related errors
+-   Moved default-maze-list.json from shared-library
+-   /generate/default-maze-list now reads from /data/default-maze-list.json when called
+-   Added optional query parameter to /generate/default-maze-list: Appending "?NO_REGEN=true" to the URL will cause all default mazes to be deleted, but not regenerated
+
 ### v1.1.0
 
 -   Reversed order of maze generation in /generate/default-maze-list so smaller mazes would be on top of the document stack

@@ -1,6 +1,6 @@
 {
     "name": "maze",
-    "baseUrl": "/api/maze/",
+    "baseUrl": "/api/maze",
     "endpoints": [
         {
             "name": "service",
@@ -108,7 +108,14 @@
             "method": "get",
             "contentType": "application/json",
             "url": "generate/default-maze-list",
-            "arguments": []
+            "arguments": [
+                {
+                    "name": "?NO_REGEN",
+                    "title": "no maze regeneration",
+                    "description": "If set to true, maze regeneration and insertion into database will be disabled - all default mazes will be deleted.",
+                    "type": "optional, query parameter, string, [true]"
+                }
+            ]
         },
         {
             "name": "insert",

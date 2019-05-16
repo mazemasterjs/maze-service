@@ -1,6 +1,6 @@
 {
     "name": "maze-service",
-    "version": "1.2.1",
+    "version": "1.2.2",
     "description": "Handles storage, retrieval, and generation of mazes for MazeMasterJS",
     "main": "bin/service.js",
     "scripts": {
