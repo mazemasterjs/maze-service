@@ -1,0 +1,25 @@
+{
+    "stubs": [
+        {"name": "Tiny Trek", "height": 3, "width": 3, "challenge": 1, "seed": "TinTre_v0.0.1"},
+        {"name": "Miniature March", "height": 3, "width": 5, "challenge": 1, "seed": "MinMar_v0.0.1"},
+        {"name": "Short Stroll", "height": 5, "width": 5, "challenge": 2, "seed": "ShoStr_v0.0.1"},
+        {"name": "Winding Walk", "height": 5, "width": 10, "challenge": 3, "seed": "WinWal_v0.0.1"},
+        {"name": "Simmering Shuffle", "height": 10, "width": 10, "challenge": 3, "seed": "SimShu_v0.0.1"},
+        {"name": "Terrible Traipse", "height": 10, "width": 15, "challenge": 4, "seed": "TerTra_v0.0.1"},
+        {"name": "Horrible Hike", "height": 15, "width": 15, "challenge": 4, "seed": "HorHik_v0.0.1"},
+        {"name": "Jarring Jog", "height": 15, "width": 20, "challenge": 4, "seed": "JarJog_v0.0.1"},
+        {"name": "Turkey Trot", "height": 20, "width": 20, "challenge": 5, "seed": "TurTro_v0.0.1"},
+        {"name": "Painful Promenade", "height": 20, "width": 25, "challenge": 5, "seed": "PaiPro_v0.0.1"},
+        {"name": "Searing Sprint", "height": 25, "width": 25, "challenge": 6, "seed": "SeaSpr_v0.0.1"},
+        {"name": "Deadly Dash", "height": 25, "width": 30, "challenge": 6, "seed": "DeaDas_v0.0.1"},
+        {"name": "Tormenting Tour", "height": 30, "width": 30, "challenge": 7, "seed": "TorTou_v0.0.1"},
+        {"name": "Miserable Mile", "height": 30, "width": 35, "challenge": 7, "seed": "MisMil_v0.0.1"},
+        {"name": "Boiling Bound", "height": 35, "width": 35, "challenge": 8, "seed": "BoiBou_v0.0.1"},
+        {"name": "Punishing Patrol", "height": 35, "width": 40, "challenge": 8, "seed": "PaiPac_v0.0.1"},
+        {"name": "Gangrenous Gallop", "height": 40, "width": 40, "challenge": 9, "seed": "GanGal_v0.0.1"},
+        {"name": "Fearful Flight", "height": 40, "width": 45, "challenge": 9, "seed": "FeaFli_v0.0.1"},
+        {"name": "Withering Wander", "height": 45, "width": 45, "challenge": 10, "seed": "WitWan_v0.0.1"},
+        {"name": "Ridiculous Ramble", "height": 45, "width": 50, "challenge": 10, "seed": "RidRam_v0.0.1"},
+        {"name": "Farstrider's Folly", "height": 50, "width": 50, "challenge": 10, "seed": "FarFol_v0.0.1"}
+    ]
+}
