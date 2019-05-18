@@ -1,6 +1,6 @@
 {
     "name": "maze-service",
-    "version": "1.3.0",
+    "version": "1.3.1",
     "description": "Handles storage, retrieval, and generation of mazes for MazeMasterJS",
     "main": "bin/service.js",
     "scripts": {
@@ -25,7 +25,7 @@
     },
     "homepage": "https://github.com/mazemasterjs/maze-service#readme",
     "dependencies": {
-        "@mazemasterjs/database-manager": "^1.2.6",
+        "@mazemasterjs/database-manager": "^1.2.7",
         "@mazemasterjs/logger": "^1.0.7",
         "@mazemasterjs/shared-library": "^1.5.0",
         "compression": "^1.7.4",
