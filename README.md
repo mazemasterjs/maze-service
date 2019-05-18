@@ -15,6 +15,12 @@ maze-service handles storage, retrieval, and generation of maze data.
 
 ## Change Log
 
+### v1.3.0
+
+-   added deleteMany?key=val&key2=val2... where query parameters are used to seek specific field/val pairs (e.g. /deleteMany?height=13&width=13)
+-   /get/all should no longer return stale cache data
+-
+
 ### v1.1.2
 
 -   Reworked /generate/default-maze-list a bit to fix potential promise-related errors

@@ -204,7 +204,7 @@ let getAllMazeStubs = (req, res) => __awaiter(this, void 0, void 0, function* ()
     log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     yield buildMazeArray(STUB_PROJECTION)
         .then((stubs) => {
-        res.status(200).json(stubCache);
+        res.status(200).json(stubs);
     })
         .catch((err) => {
         res.status(500).json({ status: '500', message: err.message });
@@ -378,29 +378,51 @@ let updateMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
     });
 });
 /**
+ * Deletes all mazes found matching the given query parameters
+ *
+ * @param req
+ * @param res
+ */
+let deleteManyMazes = (req, res) => __awaiter(this, void 0, void 0, function* () {
+    const query = {};
+    // build the json object containing maze parameters for deletion
+    for (const key in req.query) {
+        query[key] = req.query[key];
+    }
+    log.debug(__filename, `deleteManyMazes(${JSON.stringify(query)})`, 'Entering');
+    yield dbMan
+        .deleteDocuments(config.MONGO_COL_MAZES, query)
+        .then((result) => {
+        if (result.deletedCount === 0) {
+            log.debug(__filename, req.url, `No mazes matching parameters ${JSON.stringify(query)} were found.`);
+            return res.status(404).json(result);
+        }
+        else {
+            log.debug(__filename, req.url, `${result.deletedCount} mazes were deleted.`);
+            return res.status(200).json(result);
+        }
+    })
+        .catch((err) => {
+        log.error(__filename, `deleteManyMazes(${query})`, 'Error encountered ->', err);
+    });
+});
+/**
  * Remove the maze document with the ID found in req.id and sends result/count as json response
  *
  * @param req - express.Request
  * @param res - express.Response
  */
-let deleteMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
+let deleteMazeById = (req, res) => __awaiter(this, void 0, void 0, function* () {
     const mazeId = req.params.id;
     cacheExpiration = Date.now(); // invalidate cache
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     yield dbMan.deleteDocument(config.MONGO_COL_MAZES, { id: mazeId }).then((result) => {
-        switch (result.deletedCount) {
-            case 0: {
-                log.debug(__filename, req.url, `Maze "${mazeId}" not found.`);
-                return res.status(404).json(result);
-            }
-            case 1: {
-                log.debug(__filename, req.url, `Maze "${mazeId}" deleted.`);
-                return res.status(200).json(result);
-            }
-            default: {
-                log.warn(__filename, req.url, `!! WARNING !! ${result.deletedCount} mazes with id "${mazeId}" deleted`);
-                return res.status(200).json(result);
-            }
+        if (result.deletedCount === 0) {
+            log.debug(__filename, req.url, `Maze "${mazeId}" not found.`);
+            return res.status(404).json(result);
+        }
+        else {
+            return res.status(200).json(result);
         }
     });
 });
@@ -460,7 +482,8 @@ exports.defaultRouter.get('/get/:id', getMaze);
 exports.defaultRouter.get('/generate/default-maze-list', generateDefaultMazes);
 exports.defaultRouter.get('/generate/:height/:width/:challenge/:name/:seed', generateMaze);
 // Route -> http.delete mappings
-exports.defaultRouter.delete('/delete/:id', deleteMaze);
+exports.defaultRouter.delete('/delete/:id', deleteMazeById);
+exports.defaultRouter.delete('/deleteMany', deleteManyMazes);
 // Route -> http.put mappings
 exports.defaultRouter.put('/insert', insertMaze);
 exports.defaultRouter.put('/update', updateMaze);
