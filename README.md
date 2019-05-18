@@ -11,7 +11,6 @@ maze-service handles storage, retrieval, and generation of maze data.
 ## Notes
 
 -   This service is hooked to OpenShift - when a PR against master is completed, the CD pipeline kicks in and OpenShift pulls the repo, creates a new container image, and attempts to deploy it to the cluster. Unless the build / deploy fails, changes will be live within a minute of the PR being completed.
--   Chris is [working on a vue component](https://trello.com/c/yrkTE2Od) for service docs that will be available via web-ui sometime soon.
 
 ## Change Log
 
