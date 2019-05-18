@@ -48,18 +48,27 @@
         {
             "name": "delete",
             "title": "deletes a maze",
-            "description": "Delete document(s) with the given MazeId from the mazes collection.",
+            "description": "Delete document with the given MazeId from the mazes collection.",
             "method": "delete",
             "contentType": "application/json",
             "url": "delete/{mazeId}",
             "arguments": [
                 {
                     "name": "mazeId",
-                    "title": "maze to delete",
+                    "title": "MazeID of the maze to delete",
                     "description": "mazeId is a string concatenation the height, width, challenge-level, name, and seed fields. For example: '3:5:10:TestMaze:SampleSeed'",
                     "type": "string"
                 }
             ]
+        },
+        {
+            "name": "deleteMany",
+            "title": "deletes one or more mazes",
+            "description": "Delete document(s) matching the given query parameters.  Example: /deleteMany?height=15&width=15&name=MyMaze",
+            "method": "deleteMany",
+            "contentType": "application/json",
+            "url": "deleteMany?key1=val1&key2=val2&key3=val3...",
+            "arguments": []
         },
         {
             "name": "generate",
