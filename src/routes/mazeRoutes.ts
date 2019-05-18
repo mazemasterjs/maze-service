@@ -230,14 +230,10 @@ let getMaze = async (req: express.Request, res: express.Response) => {
     await dbMan
         .getDocument(config.MONGO_COL_MAZES, {id: mazeId}, {_id: 0})
         .then((maze) => {
-            if (!maze) {
-                return res.status(404).json({status: '404', message: 'Maze not found.'});
-            } else {
-                return res.status(200).json(maze);
-            }
+            return res.status(200).json(maze);
         })
         .catch((err) => {
-            res.status(500).json({status: '500', message: err.message});
+            return res.status(500).json({status: '500', message: err.message});
         });
 };
 
@@ -415,16 +411,11 @@ let deleteManyMazes = async (req: express.Request, res: express.Response) => {
     await dbMan
         .deleteDocuments(config.MONGO_COL_MAZES, query)
         .then((result) => {
-            if (result.deletedCount === 0) {
-                log.debug(__filename, req.url, `No mazes matching parameters ${JSON.stringify(query)} were found.`);
-                return res.status(404).json(result);
-            } else {
-                log.debug(__filename, req.url, `${result.deletedCount} mazes were deleted.`);
-                return res.status(200).json(result);
-            }
+            return res.status(200).json(result);
         })
         .catch((err: Error) => {
             log.error(__filename, `deleteManyMazes(${query})`, 'Error encountered ->', err);
+            res.status(500).json({status: '500', message: err.message});
         });
 };
 
@@ -439,14 +430,15 @@ let deleteMazeById = async (req: express.Request, res: express.Response) => {
     cacheExpiration = Date.now(); // invalidate cache
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
 
-    await dbMan.deleteDocument(config.MONGO_COL_MAZES, {id: mazeId}).then((result) => {
-        if (result.deletedCount === 0) {
-            log.debug(__filename, req.url, `Maze "${mazeId}" not found.`);
-            return res.status(404).json(result);
-        } else {
+    await dbMan
+        .deleteDocument(config.MONGO_COL_MAZES, {id: mazeId})
+        .then((result) => {
+            log.debug(__filename, req.url, `${result.deletedCount} mazes deleted.`);
             return res.status(200).json(result);
-        }
-    });
+        })
+        .catch((err) => {
+            res.status(500).json({status: '500', message: err.message});
+        });
 };
 
 /**
