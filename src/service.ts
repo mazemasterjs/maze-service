@@ -45,30 +45,6 @@ async function startService() {
 }
 
 /**
- * Handle requests for .css files
- */
-let getCssFile = (req: express.Request, res: express.Response) => {
-    let cssFile: string = `views/css/${req.params.file}`;
-    log.trace(__filename, req.url, 'Handling request -> ' + req.url);
-    if (fs.existsSync(cssFile)) {
-        res.setHeader('Content-Type', 'text/css');
-        res.status(200).sendFile(path.resolve(cssFile));
-    } else {
-        log.warn(__filename, `Route -> [${req.url}]`, `File [${cssFile}] not found, returning 404.`);
-        res.sendStatus(404);
-    }
-};
-
-/**
- * Handle favicon requests
- */
-let getFavicon = (req: express.Request, res: express.Response) => {
-    log.trace(__filename, req.url, 'Handling request -> ' + req.url);
-    res.setHeader('Content-Type', 'image/x-icon');
-    res.status(200).sendFile(path.resolve('views/images/favicon/favicon.ico'));
-};
-
-/**
  * Starts up the express server
  */
 function launchExpress() {
@@ -109,15 +85,6 @@ function launchExpress() {
 
     // set up the default route handler
     app.use('/api/maze', defaultRouter);
-
-    // handle general css file requests
-    app.get('/css/:file', getCssFile);
-
-    // handle general image file requests
-    app.get('/css/:file', getCssFile);
-
-    // handle favicon requests
-    app.get('/favicon.ico', getFavicon);
 
     // catch-all for unhandled requests
     app.get('/*', (req, res) => {
