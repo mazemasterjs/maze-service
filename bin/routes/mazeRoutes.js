@@ -155,7 +155,7 @@ function getStubFromMazeDoc(maze) {
  */
 function doInsertMaze(mazeDoc) {
     return __awaiter(this, void 0, void 0, function* () {
-        log.debug(__filename, `doInsertMaze(${mazeDoc})`, `Attempting to insert ${mazeDoc.id}`);
+        log.debug(__filename, `doInsertMaze(${mazeDoc.id})`, `Attempting to insert ${mazeDoc.id}`);
         let result = yield dbMan
             .insertDocument(config.MONGO_COL_MAZES, mazeDoc)
             .then((result) => {
@@ -392,7 +392,7 @@ let deleteManyMazes = (req, res) => __awaiter(this, void 0, void 0, function* ()
     for (const key in req.query) {
         query[key] = req.query[key];
     }
-    log.debug(__filename, `deleteManyMazes(${JSON.stringify(query)})`, 'Entering');
+    log.debug(__filename, `deleteManyMazes(${JSON.stringify(query)})`, 'Attempting to delete mazes.');
     yield dbMan
         .deleteDocuments(config.MONGO_COL_MAZES, query)
         .then((result) => {

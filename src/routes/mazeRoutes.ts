@@ -156,7 +156,7 @@ function getStubFromMazeDoc(maze: any) {
  * @param mazeDoc - Maze document
  */
 async function doInsertMaze(mazeDoc: any): Promise<any> {
-    log.debug(__filename, `doInsertMaze(${mazeDoc})`, `Attempting to insert ${mazeDoc.id}`);
+    log.debug(__filename, `doInsertMaze(${mazeDoc.id})`, `Attempting to insert ${mazeDoc.id}`);
 
     let result = await dbMan
         .insertDocument(config.MONGO_COL_MAZES, mazeDoc)
@@ -418,7 +418,7 @@ let deleteManyMazes = async (req: express.Request, res: express.Response) => {
         query[key] = req.query[key];
     }
 
-    log.debug(__filename, `deleteManyMazes(${JSON.stringify(query)})`, 'Entering');
+    log.debug(__filename, `deleteManyMazes(${JSON.stringify(query)})`, 'Attempting to delete mazes.');
 
     await dbMan
         .deleteDocuments(config.MONGO_COL_MAZES, query)
