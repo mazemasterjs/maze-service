@@ -11,15 +11,17 @@ maze-service handles storage, retrieval, and generation of maze data.
 ## Notes
 
 -   This service is hooked to OpenShift - when a PR against master is completed, the CD pipeline kicks in and OpenShift pulls the repo, creates a new container image, and attempts to deploy it to the cluster. Unless the build / deploy fails, changes will be live within a minute of the PR being completed.
--   Chris is [working on a vue component](https://trello.com/c/yrkTE2Od) for service docs that will be available via web-ui sometime soon.
 
 ## Change Log
+
+### v1.3.2
+
+-   removed favIcon and css request handlers - static requests should be go to mazemasterjs.com/ to be handled by static-host
 
 ### v1.3.0
 
 -   added deleteMany?key=val&key2=val2... where query parameters are used to seek specific field/val pairs (e.g. /deleteMany?height=13&width=13)
 -   /get/all should no longer return stale cache data
--
 
 ### v1.1.2
 

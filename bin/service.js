@@ -11,8 +11,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const fs_1 = __importDefault(require("fs"));
-const path_1 = __importDefault(require("path"));
 const express_1 = __importDefault(require("express"));
 const compression_1 = __importDefault(require("compression"));
 const body_parser_1 = __importDefault(require("body-parser"));
@@ -52,29 +50,6 @@ function startService() {
     });
 }
 /**
- * Handle requests for .css files
- */
-let getCssFile = (req, res) => {
-    let cssFile = `views/css/${req.params.file}`;
-    log.trace(__filename, req.url, 'Handling request -> ' + req.url);
-    if (fs_1.default.existsSync(cssFile)) {
-        res.setHeader('Content-Type', 'text/css');
-        res.status(200).sendFile(path_1.default.resolve(cssFile));
-    }
-    else {
-        log.warn(__filename, `Route -> [${req.url}]`, `File [${cssFile}] not found, returning 404.`);
-        res.sendStatus(404);
-    }
-};
-/**
- * Handle favicon requests
- */
-let getFavicon = (req, res) => {
-    log.trace(__filename, req.url, 'Handling request -> ' + req.url);
-    res.setHeader('Content-Type', 'image/x-icon');
-    res.status(200).sendFile(path_1.default.resolve('views/images/favicon/favicon.ico'));
-};
-/**
  * Starts up the express server
  */
 function launchExpress() {
@@ -109,12 +84,6 @@ function launchExpress() {
     app.use('/api/maze/probes', probes_1.probesRouter);
     // set up the default route handler
     app.use('/api/maze', mazeRoutes_1.defaultRouter);
-    // handle general css file requests
-    app.get('/css/:file', getCssFile);
-    // handle general image file requests
-    app.get('/css/:file', getCssFile);
-    // handle favicon requests
-    app.get('/favicon.ico', getFavicon);
     // catch-all for unhandled requests
     app.get('/*', (req, res) => {
         log.debug(__filename, req.url, 'Invalid Route Requested -> ' + req.url);

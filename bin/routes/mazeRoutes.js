@@ -155,7 +155,7 @@ function getStubFromMazeDoc(maze) {
  */
 function doInsertMaze(mazeDoc) {
     return __awaiter(this, void 0, void 0, function* () {
-        log.debug(__filename, `doInsertMaze(${mazeDoc})`, `Attempting to insert ${mazeDoc.id}`);
+        log.debug(__filename, `doInsertMaze(${mazeDoc.id})`, `Attempting to insert ${mazeDoc.id}`);
         let result = yield dbMan
             .insertDocument(config.MONGO_COL_MAZES, mazeDoc)
             .then((result) => {
@@ -204,6 +204,7 @@ let getAllMazeStubs = (req, res) => __awaiter(this, void 0, void 0, function* ()
     log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     yield buildMazeArray(STUB_PROJECTION)
         .then((stubs) => {
+        log.debug(__filename, 'getAllMazeStubs()', `${stubs.length} maze stubs returned.`);
         res.status(200).json(stubs);
     })
         .catch((err) => {
@@ -222,15 +223,11 @@ let getMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
     yield dbMan
         .getDocument(config.MONGO_COL_MAZES, { id: mazeId }, { _id: 0 })
         .then((maze) => {
-        if (!maze) {
-            return res.status(404).json({ status: '404', message: 'Maze not found.' });
-        }
-        else {
-            return res.status(200).json(maze);
-        }
+        log.debug(__filename, `getMaze(${mazeId})`, `Maze ${maze.id} found and returned.`);
+        return res.status(200).json(maze);
     })
         .catch((err) => {
-        res.status(500).json({ status: '500', message: err.message });
+        return res.status(500).json({ status: '500', message: err.message });
     });
 });
 /**
@@ -243,6 +240,7 @@ let generateMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
     log.debug(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
     try {
         let maze = new Maze_1.default().generate(req.params.height, req.params.width, req.params.challenge, encodeURI(req.params.name), encodeURI(req.params.seed));
+        log.debug(__filename, `generateMaze(...)`, `Maze ${maze.Id} generated and returned.`);
         res.status(200).json(maze);
     }
     catch (err) {
@@ -330,9 +328,11 @@ let generateDefaultMazes = (req, res) => __awaiter(this, void 0, void 0, functio
     }
     // set response status based on error count
     if (resErr.length > 0) {
+        log.warn(__filename, `generateDefaultMazes()`, `Default maze generation completed with errors: ${JSON.stringify({ ok: resOk, warn: resWrn, error: resErr })}`);
         res.status(500);
     }
     else {
+        log.debug(__filename, `generateDefaultMazes()`, `Default maze generation completed sucessfully.`);
         res.status(200);
     }
     // return the results
@@ -350,9 +350,11 @@ let insertMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
     let maze = req.body;
     yield doInsertMaze(maze)
         .then((result) => {
+        log.debug(__filename, `insertMaze()`, `Maze ${maze.id} inserted.`);
         res.status(200).json(result);
     })
         .catch((err) => {
+        log.error(__filename, `insertMaze()`, `Error inserting maze ->`, err);
         res.status(400).json({ status: '400', message: `${err.name} - ${err.message}` });
     });
 });
@@ -370,6 +372,7 @@ let updateMaze = (req, res) => __awaiter(this, void 0, void 0, function* () {
     yield dbMan
         .updateDocument(config.MONGO_COL_MAZES, { id: maze.Id }, maze)
         .then((result) => {
+        log.debug(__filename, `updateMaze()`, `Maze ${maze.Id} updated.`);
         res.status(200).json(result);
     })
         .catch((err) => {
@@ -389,21 +392,16 @@ let deleteManyMazes = (req, res) => __awaiter(this, void 0, void 0, function* ()
     for (const key in req.query) {
         query[key] = req.query[key];
     }
-    log.debug(__filename, `deleteManyMazes(${JSON.stringify(query)})`, 'Entering');
+    log.debug(__filename, `deleteManyMazes(${JSON.stringify(query)})`, 'Attempting to delete mazes.');
     yield dbMan
         .deleteDocuments(config.MONGO_COL_MAZES, query)
         .then((result) => {
-        if (result.deletedCount === 0) {
-            log.debug(__filename, req.url, `No mazes matching parameters ${JSON.stringify(query)} were found.`);
-            return res.status(404).json(result);
-        }
-        else {
-            log.debug(__filename, req.url, `${result.deletedCount} mazes were deleted.`);
-            return res.status(200).json(result);
-        }
+        log.debug(__filename, `deleteManyMazes(${JSON.stringify(query)})`, `${result.deletedCount} mazes deleted.`);
+        return res.status(200).json(result);
     })
         .catch((err) => {
         log.error(__filename, `deleteManyMazes(${query})`, 'Error encountered ->', err);
+        res.status(500).json({ status: '500', message: err.message });
     });
 });
 /**
@@ -416,14 +414,15 @@ let deleteMazeById = (req, res) => __awaiter(this, void 0, void 0, function* () 
     const mazeId = req.params.id;
     cacheExpiration = Date.now(); // invalidate cache
     log.trace(__filename, req.url, 'Handling request -> ' + rebuildUrl(req));
-    yield dbMan.deleteDocument(config.MONGO_COL_MAZES, { id: mazeId }).then((result) => {
-        if (result.deletedCount === 0) {
-            log.debug(__filename, req.url, `Maze "${mazeId}" not found.`);
-            return res.status(404).json(result);
-        }
-        else {
-            return res.status(200).json(result);
-        }
+    yield dbMan
+        .deleteDocument(config.MONGO_COL_MAZES, { id: mazeId })
+        .then((result) => {
+        log.debug(__filename, req.url, `${result.deletedCount} mazes deleted.`);
+        return res.status(200).json(result);
+    })
+        .catch((err) => {
+        log.error(__filename, `deleteMazeById(${mazeId})`, 'Error encountered ->', err);
+        res.status(500).json({ status: '500', message: err.message });
     });
 });
 /**
